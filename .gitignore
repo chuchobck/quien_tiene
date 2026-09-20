@@ -1,0 +1,24 @@
+# Secretos. NUNCA quitar esta linea.
+.env
+.env.local
+.env.*.local
+
+node_modules/
+dist/
+*.log
+npm-debug.log*
+
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Material de grabacion
+grabacion/
+*.mp4
+*.mov
+
+# Fotos de prueba: pueden contener datos reales de pacientes o medicos
+receta*.jpg
+receta*.jpeg
+receta*.png

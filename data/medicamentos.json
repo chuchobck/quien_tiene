@@ -1,0 +1,130 @@
+[
+  {
+    "id": "enalapril-10-tab",
+    "principioActivo": "Enalapril",
+    "concentracion": "10 mg",
+    "forma": "tableta",
+    "nombresComerciales": ["Renitec", "Lotrial", "Enaladil"],
+    "coloquiales": ["pastilla de la presion", "pastilla para la presion", "la de la presion"]
+  },
+  {
+    "id": "losartan-50-tab",
+    "principioActivo": "Losartan",
+    "concentracion": "50 mg",
+    "forma": "tableta",
+    "nombresComerciales": ["Cozaar", "Losacor"],
+    "coloquiales": ["pastilla de la presion alta"]
+  },
+  {
+    "id": "metformina-850-tab",
+    "principioActivo": "Metformina",
+    "concentracion": "850 mg",
+    "forma": "tableta",
+    "nombresComerciales": ["Glucophage", "Dabex"],
+    "coloquiales": ["pastilla del azucar", "lo del azucar", "pastilla para la diabetes"]
+  },
+  {
+    "id": "amlodipino-5-tab",
+    "principioActivo": "Amlodipino",
+    "concentracion": "5 mg",
+    "forma": "tableta",
+    "nombresComerciales": ["Norvasc", "Amlodin"],
+    "coloquiales": []
+  },
+  {
+    "id": "omeprazol-20-cap",
+    "principioActivo": "Omeprazol",
+    "concentracion": "20 mg",
+    "forma": "capsula",
+    "nombresComerciales": ["Losec", "Omepral"],
+    "coloquiales": ["pastilla de la gastritis", "lo del estomago"]
+  },
+  {
+    "id": "paracetamol-500-tab",
+    "principioActivo": "Paracetamol",
+    "concentracion": "500 mg",
+    "forma": "tableta",
+    "nombresComerciales": ["Tempra", "Panadol", "Dolex", "Acetaminofen"],
+    "coloquiales": ["pastilla para el dolor", "para la fiebre", "acetaminofen"]
+  },
+  {
+    "id": "naproxeno-500-tab",
+    "principioActivo": "Naproxeno",
+    "concentracion": "500 mg",
+    "forma": "tableta",
+    "nombresComerciales": ["Apronax", "Flanax"],
+    "coloquiales": ["pastilla para la inflamacion"]
+  },
+  {
+    "id": "ibuprofeno-400-tab",
+    "principioActivo": "Ibuprofeno",
+    "concentracion": "400 mg",
+    "forma": "tableta",
+    "nombresComerciales": ["Advil", "Motrin"],
+    "coloquiales": []
+  },
+  {
+    "id": "amoxicilina-500-cap",
+    "principioActivo": "Amoxicilina",
+    "concentracion": "500 mg",
+    "forma": "capsula",
+    "nombresComerciales": ["Amoxil", "Trifamox"],
+    "coloquiales": ["el antibiotico"]
+  },
+  {
+    "id": "levotiroxina-50-tab",
+    "principioActivo": "Levotiroxina",
+    "concentracion": "50 mcg",
+    "forma": "tableta",
+    "nombresComerciales": ["Eutirox", "Synthroid"],
+    "coloquiales": ["pastilla de la tiroides"]
+  },
+  {
+    "id": "atorvastatina-20-tab",
+    "principioActivo": "Atorvastatina",
+    "concentracion": "20 mg",
+    "forma": "tableta",
+    "nombresComerciales": ["Lipitor", "Atorlip"],
+    "coloquiales": ["pastilla del colesterol"]
+  },
+  {
+    "id": "sertralina-50-tab",
+    "principioActivo": "Sertralina",
+    "concentracion": "50 mg",
+    "forma": "tableta",
+    "nombresComerciales": ["Zoloft", "Altruline"],
+    "coloquiales": []
+  },
+  {
+    "id": "salbutamol-inh",
+    "principioActivo": "Salbutamol",
+    "concentracion": "100 mcg",
+    "forma": "inhalador",
+    "nombresComerciales": ["Ventolin", "Salbutol"],
+    "coloquiales": ["bomba para el asma", "inhalador"]
+  },
+  {
+    "id": "insulina-nph-100",
+    "principioActivo": "Insulina NPH",
+    "concentracion": "100 UI/ml",
+    "forma": "ampolla",
+    "nombresComerciales": ["Humulin N", "Insulatard"],
+    "coloquiales": ["la insulina"]
+  },
+  {
+    "id": "acido-folico-1",
+    "principioActivo": "Acido folico",
+    "concentracion": "1 mg",
+    "forma": "tableta",
+    "nombresComerciales": ["Folacid"],
+    "coloquiales": []
+  },
+  {
+    "id": "warfarina-5-tab",
+    "principioActivo": "Warfarina",
+    "concentracion": "5 mg",
+    "forma": "tableta",
+    "nombresComerciales": ["Coumadin"],
+    "coloquiales": ["pastilla para la sangre"]
+  }
+]

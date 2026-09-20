@@ -1,0 +1,22 @@
+{
+  "name": "quien-tiene",
+  "version": "0.1.0",
+  "description": "Buscador de disponibilidad de medicinas en farmacias del Ecuador, por WhatsApp",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "node --watch --experimental-strip-types src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "probar:gemini": "node --experimental-strip-types scripts/probar-gemini.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "fastify": "^4.28.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "typescript": "^5.6.3"
+  }
+}
