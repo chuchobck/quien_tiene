@@ -33,7 +33,6 @@ Sistema   → Buscando en farmacias cerca de ti...
 
 Sistema   → 1 farmacia(s) tienen *Dolex (Acetaminofén 500 mg)*:
             🟢 Farmacia San Rafael · 1.2 km · $5.12
-            Encontrado en 68 segundos.
             Recuerda llevar tu receta.
 ```
 
