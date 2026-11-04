@@ -124,3 +124,13 @@ describe('flujo completo (store en memoria, WhatsApp en dry-run)', () => {
     expect(await store().ultimaDePaciente(F1)).toBeUndefined();
   });
 });
+
+describe('falla definitiva del worker', () => {
+  it('el paciente recibe un mensaje amable; a una farmacia no se le escribe', async () => {
+    const { avisarFalla } = await import('../src/core/orquestador.ts');
+    await avisarFalla(texto(PACIENTE, 'x'));
+    await avisarFalla(texto(F1, 'x'));
+    expect(await salientes(PACIENTE)).toContain('Tuvimos un problema');
+    expect((await store().salientesDe(F1)).length).toBe(0);
+  });
+});
