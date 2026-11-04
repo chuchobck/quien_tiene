@@ -36,3 +36,8 @@ Cloud Run (Fase 0.3).
 
 - Base por defecto `https://api.meta.ai/v1`; clave en `MODEL_API_KEY` (alias `META_API_KEY`); `META_IMAGE_MODE=chat|responses`; razonamiento aparte ignorado; `META_REASONING_EFFORT` opcional. Se quitó `META_API_CHAT_PATH` y `META_JSON_MODE`.
 - 53 tests pasan (adaptador contra fetch simulado). Imagen, forma de respuesta, razonamiento y esfuerzo de razonamiento: sin verificar hasta tener la key.
+
+## 2026-11-04 — ACTIVE_PHARMACY_PHONES
+
+- Nueva variable: si está definida, solo esos teléfonos se consultan y el resto queda como `listada` (`core/farmacias.ts`, con pruebas). Documentada en `.env.example` y `docs/MANANA.md`. `data/farmacias.json` sigue con números falsos.
+- Se corrigió un fallo intermitente del simulador (tomaba mensajes viejos de las farmacias como nuevos); 6 corridas seguidas limpias. 58 tests pasan.

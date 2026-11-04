@@ -107,7 +107,7 @@ npm run simular     # end-to-end with fake webhooks, mock AI, dry-run WhatsApp
 
 Other commands: `npm run dev` (server + embedded worker), `npm run worker` (separate worker, with `WORKER_EMBEBIDO=false` on the server), `npm test`, `npm run typecheck`, `npm run probar:ia -- "texto" | ruta/receta.jpg`.
 
-Config: see [`.env.example`](.env.example). `RECIPE_PROVIDER=mock|gemini|meta`. For Meta: `MODEL_API_KEY` (alias `META_API_KEY`), `META_API_BASE_URL`, `META_MODEL` (default `muse-spark-1.1`), `META_IMAGE_MODE=chat|responses`, optional `META_REASONING_EFFORT`.
+Config: see [`.env.example`](.env.example). `RECIPE_PROVIDER=mock|gemini|meta`. For Meta: `MODEL_API_KEY` (alias `META_API_KEY`), `META_API_BASE_URL`, `META_MODEL` (default `muse-spark-1.1`), `META_IMAGE_MODE=chat|responses`, optional `META_REASONING_EFFORT`. `ACTIVE_PHARMACY_PHONES` (comma-separated, set in your private `.env`) restricts which pharmacies are queried; the repo itself only holds fake numbers.
 
 ## Transparency: what existed before the hackathon
 

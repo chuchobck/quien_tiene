@@ -126,6 +126,14 @@ export const config = {
       return opt('HOST', '0.0.0.0');
     },
   },
+  /** ACTIVE_PHARMACY_PHONES: si esta definida, solo esos telefonos se consultan. undefined = sin sobreescritura. */
+  get farmaciasActivasTelefonos(): string[] | undefined {
+    const lista = (process.env['ACTIVE_PHARMACY_PHONES'] ?? '')
+      .split(',')
+      .map((n) => n.trim())
+      .filter(Boolean);
+    return lista.length > 0 ? lista : undefined;
+  },
   get farmaciasDemo(): string[] {
     return opt('FARMACIAS_DEMO', '')
       .split(',')

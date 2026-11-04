@@ -10,8 +10,9 @@
  */
 process.env.WHATSAPP_DRY_RUN = 'true';
 process.env.RECIPE_PROVIDER = 'mock';
+process.env.ACTIVE_PHARMACY_PHONES = ''; // la simulacion usa las 3 farmacias falsas del catalogo
 process.env.OSRM_ACTIVO = 'false';
-process.env.ESPERA_CIERRE_MS = '2500'; // para no esperar 90 s viendo el cierre por delay
+process.env.ESPERA_CIERRE_MS = '6000'; // corto (no 90 s) pero con margen: cerrar antes de que llegue el precio es comportamiento correcto, no un fallo
 process.env.WEBHOOK_VERIFY_TOKEN ??= 'simulacion';
 
 const { crearApp } = await import('../src/app.ts');
@@ -57,11 +58,18 @@ const texto = (from: string, body: string) => ({ from, type: 'text', text: { bod
 const botonPropio = (from: string, id: string) => ({ from, type: 'interactive', interactive: { type: 'button_reply', button_reply: { id, title: 'x' } } });
 const botonPlantilla = (from: string, payload: string) => ({ from, type: 'button', button: { payload, text: payload } });
 
-/** Espera hasta que el telefono reciba un saliente cuyo cuerpo cumpla `contiene`. */
+/**
+ * Las farmacias son las mismas en cada corrida: sus mensajes viejos no cuentan.
+ * Se anota hasta que id de OutboundMessage habia al arrancar.
+ */
+const base = new Map<string, number>();
+for (const t of [F1, F2, PACIENTE, PACIENTE2]) base.set(t, (await store().salientesDe(t)).at(-1)?.id ?? 0);
+
+/** Espera hasta que el telefono reciba un saliente NUEVO cuyo cuerpo cumpla `contiene`. */
 async function esperar(telefono: string, contiene: string, ms = 15_000): Promise<string | undefined> {
   const limite = Date.now() + ms;
   while (Date.now() < limite) {
-    const m = (await store().salientesDe(telefono)).map((x) => JSON.stringify(x.cuerpo)).find((c) => c.includes(contiene));
+    const m = (await store().salientesDe(telefono, base.get(telefono) ?? 0)).map((x) => JSON.stringify(x.cuerpo)).find((c) => c.includes(contiene));
     if (m) return m;
     await new Promise((r) => setTimeout(r, 150));
   }

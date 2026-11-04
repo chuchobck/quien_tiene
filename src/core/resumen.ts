@@ -1,5 +1,5 @@
-import { store } from '../store/index.ts';
+import { farmaciasConsultables } from './farmacias.ts';
 
 export async function farmaciasActivasCantidad(): Promise<number> {
-  return (await store().farmacias()).filter((f) => f.estado !== 'listada').length;
+  return (await farmaciasConsultables()).length;
 }

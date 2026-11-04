@@ -22,6 +22,20 @@ Estado de partida: todo el flujo verificado con `RECIPE_PROVIDER=mock`. El adapt
 
 El texto (sin imagen) siempre va por `/chat/completions`; `META_IMAGE_MODE` solo cambia cómo viaja la imagen.
 
+### Farmacias reales del demo: `ACTIVE_PHARMACY_PHONES`
+
+`data/farmacias.json` conserva números falsos (el repo es público). Para el demo con teléfonos reales, **no los escribas en el repo**: ponlos en `.env`:
+
+```
+ACTIVE_PHARMACY_PHONES=593XXXXXXXXX,593YYYYYYYYY
+```
+
+- Lista separada por comas (se ignoran `+`, espacios y guiones al comparar).
+- Si está definida, **solo** esos teléfonos se consultan; todas las demás farmacias del catálogo quedan como `listada`.
+- Un teléfono de la lista que **no está** en el catálogo no se consulta y deja un aviso en el log: la farmacia debe existir en la base. Para usar un número real, actualiza el teléfono de esa fila directamente en Postgres (no edites `data/farmacias.json` ni lo commitees con números reales).
+- Cada número debe ser destinatario de prueba en Meta (WhatsApp Cloud API), en formato E.164 sin `+`.
+- Vacía o sin definir: manda el catálogo.
+
 ## 2. Pruebas exactas del adaptador (15 min)
 
 Con `RECIPE_PROVIDER=meta`:

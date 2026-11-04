@@ -8,6 +8,7 @@ import { log } from '../util/log.ts';
 import { consultarFarmacia, descargarMedia, enviarBotones, enviarTexto } from '../whatsapp/client.ts';
 import type { MensajeEntrante } from '../whatsapp/tipos.ts';
 import { etiqueta, nombreParaPaciente, resolverSegmentos } from './catalogo.ts';
+import { farmaciasConsultables } from './farmacias.ts';
 import { programarCierre } from './planificador.ts';
 
 /** Centro de Sangolqui. Se usa si el paciente no comparte ubicacion. */
@@ -215,7 +216,7 @@ export async function pacienteConfirmo(solicitudId: string): Promise<void> {
 
   await enviarTexto(s.telefonoPaciente, 'Buscando en farmacias cerca de ti. Te aviso apenas responda alguna.');
 
-  const activas = (await store().farmacias()).filter((f) => f.estado !== 'listada');
+  const activas = await farmaciasConsultables();
 
   // Cada farmacia se procesa aislada: si a una le falla la red, las demas siguen.
   await Promise.all(
