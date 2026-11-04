@@ -1,9 +1,18 @@
 import { config } from '../config.ts';
+import { store } from '../store/index.ts';
+import { log } from '../util/log.ts';
 
 const BASE = () =>
   `https://graph.facebook.com/${config.whatsapp.apiVersion}/${config.whatsapp.phoneNumberId}`;
 
-async function enviar(cuerpo: Record<string, unknown>): Promise<void> {
+async function enviar(cuerpo: Record<string, unknown> & { to: string; type: string }): Promise<void> {
+  if (config.whatsappDryRun.activo) {
+    // Dry-run: no se llama a Meta. Queda en consola (telefono enmascarado) y en la tabla.
+    log.info(`[dry-run] saliente ${cuerpo.type} -> ${cuerpo.to}`);
+    await store().registrarSaliente(cuerpo.to, cuerpo.type, cuerpo, true);
+    return;
+  }
+
   const res = await fetch(`${BASE()}/messages`, {
     method: 'POST',
     headers: {
@@ -11,12 +20,14 @@ async function enviar(cuerpo: Record<string, unknown>): Promise<void> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ messaging_product: 'whatsapp', ...cuerpo }),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!res.ok) {
     const detalle = await res.text();
-    throw new Error(`WhatsApp API ${res.status}: ${detalle}`);
+    throw new Error(`WhatsApp API ${res.status}: ${detalle.slice(0, 300)}`);
   }
+  await store().registrarSaliente(cuerpo.to, cuerpo.type, cuerpo, false);
 }
 
 /** Texto libre. Solo funciona dentro de la ventana de servicio de 24 h. */
@@ -93,23 +104,28 @@ export async function consultarFarmacia(
   );
 }
 
-/** Descarga un archivo multimedia de WhatsApp y lo devuelve en base64. */
-export async function descargarMedia(
-  mediaId: string
-): Promise<{ base64: string; mimeType: string }> {
+/**
+ * Descarga un archivo multimedia de WhatsApp.
+ * En dry-run, un media id "mock:<fixture>" devuelve bytes falsos que el
+ * proveedor mock entiende, sin tocar la red.
+ */
+export async function descargarMedia(mediaId: string): Promise<{ buffer: Buffer; mimeType: string }> {
+  if (config.whatsappDryRun.activo && mediaId.startsWith('mock:')) {
+    return { buffer: Buffer.from(`MOCK:${mediaId.slice(5)}`), mimeType: 'image/x-mock' };
+  }
   const metaRes = await fetch(
     `https://graph.facebook.com/${config.whatsapp.apiVersion}/${mediaId}`,
-    { headers: { Authorization: `Bearer ${config.whatsapp.token}` } }
+    { headers: { Authorization: `Bearer ${config.whatsapp.token}` }, signal: AbortSignal.timeout(15_000) }
   );
-  if (!metaRes.ok) throw new Error(`No se pudo leer el media ${mediaId}`);
+  if (!metaRes.ok) throw new Error(`No se pudo leer el media (${metaRes.status})`);
 
   const meta = (await metaRes.json()) as { url: string; mime_type: string };
 
   const archivoRes = await fetch(meta.url, {
     headers: { Authorization: `Bearer ${config.whatsapp.token}` },
+    signal: AbortSignal.timeout(30_000),
   });
-  if (!archivoRes.ok) throw new Error(`No se pudo descargar el media ${mediaId}`);
+  if (!archivoRes.ok) throw new Error(`No se pudo descargar el media (${archivoRes.status})`);
 
-  const buffer = Buffer.from(await archivoRes.arrayBuffer());
-  return { base64: buffer.toString('base64'), mimeType: meta.mime_type };
+  return { buffer: Buffer.from(await archivoRes.arrayBuffer()), mimeType: meta.mime_type };
 }

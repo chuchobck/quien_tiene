@@ -31,34 +31,35 @@ export interface ConsultaFarmacia {
   precio?: number;
   distanciaTexto?: string;
   distanciaMetros?: number;
+  /** true mientras falta algo por contestar (si/no o precio). */
+  abierta: boolean;
 }
 
 export type EstadoSolicitud =
+  | 'esperando_seleccion'
   | 'esperando_confirmacion'
   | 'consultando'
   | 'resuelta'
   | 'sin_resultados';
 
+/** Opcion que el paciente puede elegir cuando la receta trae varios medicamentos. */
+export interface OpcionMedicamento {
+  /** Termino tal como lo escribio o decia la receta: es lo que ve el paciente. */
+  texto: string;
+  segmentoId: string;
+}
+
 export interface Solicitud {
   id: string;
   telefonoPaciente: string;
   segmentoId?: string;
+  /** Termino propio del paciente. Nunca el nombre "resuelto" del catalogo. */
   textoDetectado?: string;
+  opciones?: OpcionMedicamento[];
   estado: EstadoSolicitud;
   creadaEn: number;
   /** Ubicacion del paciente. Si no la comparte, se usa el centro de Sangolqui. */
   lat: number;
   lng: number;
   consultas: ConsultaFarmacia[];
-}
-
-/** Lo que Gemini devuelve al leer una receta o un texto. */
-export interface LecturaMedicamento {
-  encontrado: boolean;
-  principioActivo?: string;
-  concentracion?: string;
-  forma?: string;
-  nombreComercial?: string;
-  textoCrudo?: string;
-  confianza: 'alta' | 'media' | 'baja';
 }

@@ -1,3 +1,4 @@
+import { config } from '../config.ts';
 import { log } from '../util/log.ts';
 
 export interface Distancia {
@@ -18,6 +19,7 @@ export async function distanciaCaminando(
   origen: { lat: number; lng: number },
   destino: { lat: number; lng: number }
 ): Promise<Distancia> {
+  if (!config.maps.usarOsrm) return aproximada(origen, destino);
   const coords = `${origen.lng},${origen.lat};${destino.lng},${destino.lat}`;
   const url = `https://router.project-osrm.org/route/v1/foot/${coords}?overview=false`;
 
