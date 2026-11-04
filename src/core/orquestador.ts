@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { ErrorLecturaReceta, lectorDeRecetas, type RecipeExtraction } from '../ai/index.ts';
 import { distanciaCaminando } from '../maps/client.ts';
 import { store } from '../store/index.ts';
-import type { OpcionMedicamento, SegmentoMercado } from '../types.ts';
+import type { Farmacia, OpcionMedicamento, SegmentoMercado } from '../types.ts';
 import { log } from '../util/log.ts';
 import { consultarFarmacia, descargarMedia, enviarBotones, enviarTexto } from '../whatsapp/client.ts';
 import type { MensajeEntrante } from '../whatsapp/tipos.ts';
@@ -65,6 +65,8 @@ export async function manejarMensaje(m: MensajeEntrante): Promise<void> {
       if (await farmaciaEnvioPrecio(m.from, texto)) return;
       const tiene = interpretarRespuesta(texto);
       if (tiene !== null) return farmaciaRespondio(m.from, tiene);
+      // Un numero suelto despues del cierre puede ser un precio tardio.
+      if (/\d/.test(texto) && farmacia) await responderSiFueTardia(farmacia, 'precio');
       return;
     }
     return pacienteEnvioTexto(m.from, texto);
@@ -251,12 +253,33 @@ export async function pacienteCorrigio(solicitudId: string): Promise<void> {
 
 // ─────────── Respuesta de la farmacia ───────────
 
+/**
+ * Una farmacia contesta DESPUES del cierre: no se ignora en silencio, se le dice que esa
+ * busqueda ya cerro. Solo aplica si de verdad llego tarde (no contesto antes, o dijo que
+ * tenia y no mando precio); un "ok" o una repeticion no genera mensaje. El paciente no se
+ * entera ni se reabre la busqueda.
+ */
+async function responderSiFueTardia(f: Farmacia, tipo: 'respuesta' | 'precio'): Promise<boolean> {
+  const s = await store().ultimaConsultaDeFarmacia(f.id);
+  const c = s?.consultas.find((x) => x.farmaciaId === f.id);
+  if (!s || !c || s.estado === 'consultando') return false;
+  const tarde =
+    tipo === 'respuesta' ? c.respuesta === 'sin_respuesta' : c.respuesta === 'si_tengo' && c.precio === undefined;
+  if (!tarde) return false;
+  await enviarTexto(f.telefono, 'Gracias, esa búsqueda ya cerró.');
+  return true;
+}
+
 export async function farmaciaRespondio(telefonoFarmacia: string, tiene: boolean): Promise<void> {
   const f = await store().farmaciaPorTelefono(telefonoFarmacia);
   if (!f) return;
   const s = await store().solicitudAbiertaDeFarmacia(f.id);
-  const consulta = s?.consultas.find((c) => c.farmaciaId === f.id);
-  if (!s || !consulta || consulta.respuesta !== 'sin_respuesta') return;
+  if (!s) {
+    await responderSiFueTardia(f, 'respuesta');
+    return;
+  }
+  const consulta = s.consultas.find((c) => c.farmaciaId === f.id);
+  if (!consulta || consulta.respuesta !== 'sin_respuesta') return;
 
   if (!tiene) {
     await store().actualizarConsulta(s.id, f.id, { respuesta: 'no_tengo', respondidaEn: Date.now(), abierta: false });

@@ -146,6 +146,12 @@ export function crearStorePrisma(): Store {
         },
       });
     },
+    async ultimaConsultaDeFarmacia(farmaciaId) {
+      const q = await db().pharmacyQuery.findFirst({ where: { farmaciaId }, orderBy: { enviadaEn: 'desc' } });
+      if (!q) return undefined;
+      const r = await db().searchRequest.findUnique({ where: { id: q.solicitudId }, include: { consultas: true } });
+      return r ? aSolicitud(r) : undefined;
+    },
     async solicitudAbiertaDeFarmacia(farmaciaId) {
       const q = await db().pharmacyQuery.findFirst({
         where: { farmaciaId, abierta: true, solicitud: { estado: 'consultando' } },

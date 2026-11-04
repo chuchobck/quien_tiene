@@ -45,6 +45,7 @@ esperando_seleccion → esperando_confirmacion → consultando → resuelta | si
 - Maps/OSRM cae → Haversine, el flujo sigue.
 - Lector de IA: reintento con backoff ante 429/5xx; salida que no valida → un reintento pidiendo corregir; luego `ErrorLecturaReceta` → el paciente recibe "no alcancé a leer la receta".
 - Cualquier otro error en un job → reintentos de BullMQ (3, backoff exponencial); al agotarse, el job queda en `failed` y el paciente recibe un mensaje amable.
+- Una farmacia que contesta DESPUÉS del cierre recibe "Gracias, esa búsqueda ya cerró." (solo si de verdad llegó tarde: no había contestado, o dijo que tenía y no mandó precio). La búsqueda no se reabre y el paciente no recibe nada nuevo; esa respuesta tardía no se guarda.
 - Limitación conocida: si un job falla a mitad y se reintenta, puede repetirse un mensaje saliente o crearse una solicitud duplicada (no hay idempotencia a nivel de paso).
 
 ## Privacidad

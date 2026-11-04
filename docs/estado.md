@@ -41,3 +41,11 @@ Cloud Run (Fase 0.3).
 
 - Nueva variable: si está definida, solo esos teléfonos se consultan y el resto queda como `listada` (`core/farmacias.ts`, con pruebas). Documentada en `.env.example` y `docs/MANANA.md`. `data/farmacias.json` sigue con números falsos.
 - Se corrigió un fallo intermitente del simulador (tomaba mensajes viejos de las farmacias como nuevos); 6 corridas seguidas limpias. 58 tests pasan.
+
+## 2026-11-04 — worker, farmacias:demo, delay de cierre, respuestas tardías
+
+- Worker de mensajes con concurrencia 1. `npm run farmacias:demo -- <tel>...` (base local; `db:sembrar` ahora tolera teléfonos intercambiados).
+- Delay de cierre del producto: 90 s por defecto, mínimo 60 s (un `ESPERA_CIERRE_MS` menor se ignora). El simulador usa su propio `SIM_ESPERA_CIERRE_MS` y lo aplica solo en su proceso. Cierre anticipado verificado con el delay largo.
+- Farmacia que contesta tarde recibe "Gracias, esa búsqueda ya cerró."; la respuesta tardía no se guarda.
+- Simulador: volcado de salientes con hora y detección de cierre prematuro (causa del fallo reportado, reproducida forzando un delay de 100 ms).
+- Verificado solo en Postgres 16 y Redis 7 de apt en el entorno de construcción; nada con Docker ni con el reloj de otra máquina.

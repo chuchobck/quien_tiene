@@ -52,6 +52,21 @@ describe.skipIf(!ok)('Store sobre PostgreSQL (Prisma)', () => {
     await prisma().searchRequest.delete({ where: { id } });
   });
 
+  it('ultimaConsultaDeFarmacia devuelve la mas reciente aunque ya este cerrada', async () => {
+    const id = `u${Date.now() % 1e9}`;
+    await s.crearSolicitud({ id, telefonoPaciente: '593990008888', segmentoId: 'enalapril-10-tab', estado: 'consultando', creadaEn: Date.now(), lat: 0, lng: 0 });
+    await s.crearConsulta(id, { farmaciaId: 'f3', enviadaEn: Date.now() + 5000, respuesta: 'sin_respuesta', abierta: true });
+    expect((await s.ultimaConsultaDeFarmacia('f3'))?.id).toBe(id);
+    await s.transicionar(id, 'consultando', 'sin_resultados');
+    await s.actualizarConsulta(id, 'f3', { abierta: false });
+    expect(await s.solicitudAbiertaDeFarmacia('f3')).toBeUndefined();
+    const u = await s.ultimaConsultaDeFarmacia('f3');
+    expect(u?.id).toBe(id);
+    expect(u?.estado).toBe('sin_resultados');
+    await prisma().pharmacyQuery.deleteMany({ where: { solicitudId: id } });
+    await prisma().searchRequest.delete({ where: { id } });
+  });
+
   it('farmacias:demo en la base: asigna, deja el resto listada y es reversible con el seed', async () => {
     await sembrarCatalogo();
     try {

@@ -127,6 +127,9 @@ try {
   console.log(`  mensaje final: ${final ? (JSON.parse(final) as { text: { body: string } }).text.body.replace(/\n/g, ' | ') : '—'}`);
 
   await volcarSalientes(PACIENTE, 'salientes del paciente, escenario 1');
+  // F3 nunca contesto y la busqueda ya cerro: si contesta ahora, se le avisa.
+  await webhook(botonPlantilla(F3, 'Sí tengo'));
+  verificar(Boolean(await esperar(F3, 'ya cerró', 8000)), 'F3 contesta tarde y recibe "Gracias, esa búsqueda ya cerró."');
   paso('Escenario 2: receta con dos medicamentos -> el paciente elige uno');
   await webhook(imagen(PACIENTE2, 'mock:dos_medicamentos'));
   const opciones = await esperar(PACIENTE2, 'varios medicamentos');

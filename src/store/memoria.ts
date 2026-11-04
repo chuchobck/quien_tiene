@@ -60,6 +60,12 @@ export function crearStoreMemoria(): Store {
       const c = solicitudes.get(solicitudId)?.consultas.find((x) => x.farmaciaId === farmaciaId);
       if (c) Object.assign(c, parche);
     },
+    async ultimaConsultaDeFarmacia(farmaciaId) {
+      const cand = [...solicitudes.values()]
+        .filter((s) => s.consultas.some((c) => c.farmaciaId === farmaciaId))
+        .sort((a, b) => b.creadaEn - a.creadaEn);
+      return clonar(cand[0]);
+    },
     async solicitudAbiertaDeFarmacia(farmaciaId) {
       const candidatas = [...solicitudes.values()]
         .filter((s) => s.estado === 'consultando' &&

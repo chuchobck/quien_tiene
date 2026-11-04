@@ -50,6 +50,8 @@ export interface Store {
     farmaciaId: string,
     parche: Partial<Pick<ConsultaFarmacia, 'respuesta' | 'precio' | 'respondidaEn' | 'abierta'>>
   ): Promise<void>;
+  /** La solicitud MAS RECIENTE que tiene una consulta para esta farmacia, en cualquier estado. */
+  ultimaConsultaDeFarmacia(farmaciaId: string): Promise<Solicitud | undefined>;
   /** Solicitud en curso (estado consultando) con una consulta abierta para esta farmacia. */
   solicitudAbiertaDeFarmacia(farmaciaId: string): Promise<Solicitud | undefined>;
 
