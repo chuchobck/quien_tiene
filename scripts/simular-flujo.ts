@@ -12,7 +12,11 @@ process.env.WHATSAPP_DRY_RUN = 'true';
 process.env.RECIPE_PROVIDER = 'mock';
 process.env.ACTIVE_PHARMACY_PHONES = ''; // la simulacion usa las 3 farmacias falsas del catalogo
 process.env.OSRM_ACTIVO = 'false';
-process.env.ESPERA_CIERRE_MS = '6000'; // corto (no 90 s) pero con margen: cerrar antes de que llegue el precio es comportamiento correcto, no un fallo
+// Corto (no 90 s) pero holgado: el job con delay cierra "con lo que haya". Si el delay vence ANTES de que
+// F1/F2 contesten, el producto cierra bien (paciente recibe "Ninguna farmacia...") y esta simulacion
+// pierde su premisa; por eso se detecta y se reporta aparte (ver "cierre prematuro" mas abajo).
+process.env.ESPERA_CIERRE_MS ??= '12000';
+const ESPERA_CIERRE_MS = Number(process.env.ESPERA_CIERRE_MS);
 process.env.WEBHOOK_VERIFY_TOKEN ??= 'simulacion';
 
 const { crearApp } = await import('../src/app.ts');
@@ -76,6 +80,16 @@ async function esperar(telefono: string, contiene: string, ms = 15_000): Promise
   return undefined;
 }
 
+/** Diagnostico: todos los salientes NUEVOS de un telefono, en orden, con hora. */
+async function volcarSalientes(telefono: string, titulo: string): Promise<void> {
+  console.log(`\n  ── ${titulo} ──`);
+  for (const m of await store().salientesDe(telefono, base.get(telefono) ?? 0)) {
+    const c = m.cuerpo as { text?: { body?: string }; interactive?: { body?: { text?: string } } };
+    const t = (c.text?.body ?? c.interactive?.body?.text ?? '').replace(/\n/g, ' | ');
+    console.log(`  #${m.id} ${new Date(m.creadoEn).toISOString().slice(11, 23)} ${m.tipo.padEnd(11)} ${t.slice(0, 110)}`);
+  }
+}
+
 try {
   paso('Escenario 1: foto (mock) -> confirmacion -> farmacias -> precio -> cierre por job con delay');
   await webhook(imagen(PACIENTE, 'mock:dolex'));
@@ -84,6 +98,7 @@ try {
   verificar(!conf?.includes('Paracetamol'), 'no se le muestra "Paracetamol"');
 
   const sol = await store().ultimaDePaciente(PACIENTE);
+  const tConfirmo = Date.now();
   await webhook(botonPropio(PACIENTE, `confirmar:${sol!.id}`));
   const aF1 = await esperar(F1, 'Paracetamol 500 mg');
   verificar(Boolean(aF1), 'la farmacia recibe la consulta con el termino del catalogo');
@@ -92,12 +107,22 @@ try {
   verificar(Boolean(await esperar(F1, 'A qué precio')), 'F1 toco "Sí tengo" (plantilla) y se le pide el precio');
   await webhook(texto(F1, '5,12'));
   await webhook(botonPlantilla(F2, 'No tengo'));
-  const final = await esperar(PACIENTE, 'tienen *Dolex', 20_000);
+  const tRespondieron = Date.now() - tConfirmo;
+  const final = await esperar(PACIENTE, 'tienen *Dolex', ESPERA_CIERRE_MS + 15_000);
+  const cierrePrematuro = await esperar(PACIENTE, 'Ninguna farmacia cercana', 500);
+  if (!final && cierrePrematuro) {
+    console.log(
+      `  ⚠ CIERRE PREMATURO (premisa de la simulacion rota, no un fallo del producto): el delay de ` +
+        `${ESPERA_CIERRE_MS} ms vencio antes de que F1/F2 contestaran (tardaron ${tRespondieron} ms). ` +
+        `Sube ESPERA_CIERRE_MS.`
+    );
+  }
   verificar(Boolean(final), 'el paciente recibe el resultado (F3 no contesto: cerro el job con delay)');
   verificar(Boolean(final?.includes('Farmacia San Rafael') && final.includes('$5.12')), 'incluye farmacia y precio');
   verificar(Boolean(final?.includes('Recuerda llevar tu receta')), 'termina en "lleva tu receta", sin transaccion');
   console.log(`  mensaje final: ${final ? (JSON.parse(final) as { text: { body: string } }).text.body.replace(/\n/g, ' | ') : '—'}`);
 
+  await volcarSalientes(PACIENTE, 'salientes del paciente, escenario 1');
   paso('Escenario 2: receta con dos medicamentos -> el paciente elige uno');
   await webhook(imagen(PACIENTE2, 'mock:dos_medicamentos'));
   const opciones = await esperar(PACIENTE2, 'varios medicamentos');
