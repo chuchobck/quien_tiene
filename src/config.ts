@@ -67,22 +67,31 @@ export const config = {
     },
   },
   meta: {
+    /** MODEL_API_KEY es el nombre principal; META_API_KEY se mantiene como alias. */
     get apiKey() {
-      return req('META_API_KEY');
+      const v = process.env['MODEL_API_KEY']?.trim() || process.env['META_API_KEY']?.trim();
+      if (!v) throw new Error('Falta la variable de entorno MODEL_API_KEY (o su alias META_API_KEY).');
+      return v;
     },
+    /** dev.meta.ai es el portal, NO la API. La API es api.meta.ai/v1 (compatible con OpenAI). */
     get baseUrl() {
-      return opt('META_API_BASE_URL', 'https://dev.meta.ai').replace(/\/+$/, '');
+      return opt('META_API_BASE_URL', 'https://api.meta.ai/v1').replace(/\/+$/, '');
     },
     get modelo() {
       return opt('META_MODEL', 'muse-spark-1.1');
     },
-    /** Ruta del endpoint de chat. UNVERIFIED: configurable por si la documentacion difiere. */
-    get rutaChat() {
-      return opt('META_API_CHAT_PATH', '/v1/chat/completions');
+    /** UNVERIFIED: formato de la imagen. chat = image_url en /chat/completions; responses = input_image en /responses. */
+    get modoImagen(): 'chat' | 'responses' {
+      const v = opt('META_IMAGE_MODE', 'chat');
+      if (v !== 'chat' && v !== 'responses') {
+        throw new Error(`META_IMAGE_MODE invalido: "${v}". Usa chat o responses.`);
+      }
+      return v;
     },
-    /** Pedir response_format json_object. UNVERIFIED: apagado por defecto. */
-    get modoJson() {
-      return opt('META_JSON_MODE', 'false') === 'true';
+    /** Opcional, para bajar la latencia (p. ej. low). Vacio = no se envia. UNVERIFIED. */
+    get esfuerzoRazonamiento(): string | undefined {
+      const v = process.env['META_REASONING_EFFORT']?.trim();
+      return v ? v : undefined;
     },
   },
   gemini: {
@@ -116,6 +125,14 @@ export const config = {
     get host() {
       return opt('HOST', '0.0.0.0');
     },
+  },
+  /** ACTIVE_PHARMACY_PHONES: si esta definida, solo esos telefonos se consultan. undefined = sin sobreescritura. */
+  get farmaciasActivasTelefonos(): string[] | undefined {
+    const lista = (process.env['ACTIVE_PHARMACY_PHONES'] ?? '')
+      .split(',')
+      .map((n) => n.trim())
+      .filter(Boolean);
+    return lista.length > 0 ? lista : undefined;
   },
   get farmaciasDemo(): string[] {
     return opt('FARMACIAS_DEMO', '')

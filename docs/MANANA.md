@@ -4,20 +4,37 @@ Estado de partida: todo el flujo verificado con `RECIPE_PROVIDER=mock`. El adapt
 
 ## 1. Activar y configurar (5 min)
 
-1. Activar billing y crear la API key en dev.meta.ai.
-2. En `.env`: `META_API_KEY=...`, `RECIPE_PROVIDER=meta`.
-3. **Leer la documentación oficial** y confirmar o corregir estos supuestos (cada uno es configurable o está en `src/ai/meta.ts`):
+1. Activar billing y crear la API key en dev.meta.ai (el portal; la API vive en `api.meta.ai/v1`).
+2. En `.env`: `MODEL_API_KEY=...` (alias: `META_API_KEY`), `RECIPE_PROVIDER=meta`.
+3. **Leer la documentación oficial** y confirmar o corregir lo siguiente:
 
-| Supuesto | Variable / lugar | Notas |
+| Dato | Variable / lugar | Estado |
 |---|---|---|
-| Base URL `https://dev.meta.ai` | `META_API_BASE_URL` | Fragmentos de terceros hablan de `https://api.meta.ai/v1`: puede ser otra |
-| Ruta `/v1/chat/completions` | `META_API_CHAT_PATH` | Si la base ya trae `/v1`, ajustar |
-| Auth `Authorization: Bearer <key>` | `meta.ts`, `llamar()` | |
-| Modelo `muse-spark-1.1` | `META_MODEL` | Fragmentos de terceros mencionan también `muse-spark-1.2` (y quizá más nuevos) |
-| Imagen como `{type:'image_url', image_url:{url:'data:...;base64,...'}}` | `meta.ts`, `readImage` | Puede requerir otro formato (p. ej. API Responses) |
-| Mensaje `system` aceptado | `meta.ts` | |
-| Texto en `choices[0].message.content` | `extraerTexto()` | |
-| JSON mode `response_format: {type:'json_object'}` | `META_JSON_MODE=true` | Apagado por defecto; la salida igual se valida con zod |
+| Base `https://api.meta.ai/v1` | `META_API_BASE_URL` | Dado por el autor, sin comprobar |
+| `Authorization: Bearer <key>` | `meta.ts`, `llamar()` | Dado por el autor, sin comprobar |
+| Endpoints `POST /chat/completions` y `POST /responses` (compatibles con OpenAI) | `meta.ts`, `construirPeticion()` | Dado por el autor, sin comprobar |
+| Modelo `muse-spark-1.1` | `META_MODEL` | Por defecto; fragmentos de terceros mencionan `muse-spark-1.2` |
+| **Imagen, modo `chat`:** `{type:'image_url', image_url:{url:'data:...;base64,...'}}` en `/chat/completions` | `META_IMAGE_MODE=chat` (defecto) | **SIN VERIFICAR** |
+| **Imagen, modo `responses`:** `{type:'input_image', image_url:'data:...'}` dentro de `input[].content` en `/responses`, prompt en `instructions` | `META_IMAGE_MODE=responses` | **SIN VERIFICAR** |
+| Texto en `choices[0].message.content` (chat) / `output_text` u `output[type=message]` (responses) | `textoDeChat()`, `textoDeResponses()` | **SIN VERIFICAR** |
+| Razonamiento aparte (partes `reasoning`, `reasoning_content`, items `reasoning`, `<think>`): se ignora, solo se valida el texto final | mismas funciones | **SIN VERIFICAR** que así lo entregue la API |
+| `META_REASONING_EFFORT` (opcional): se envía como `reasoning_effort` (chat) o `reasoning: {effort}` (responses) | `construirPeticion()` | **SIN VERIFICAR** nombre, forma y valores aceptados |
+
+El texto (sin imagen) siempre va por `/chat/completions`; `META_IMAGE_MODE` solo cambia cómo viaja la imagen.
+
+### Farmacias reales del demo: `ACTIVE_PHARMACY_PHONES`
+
+`data/farmacias.json` conserva números falsos (el repo es público). Para el demo con teléfonos reales, **no los escribas en el repo**: ponlos en `.env`:
+
+```
+ACTIVE_PHARMACY_PHONES=593XXXXXXXXX,593YYYYYYYYY
+```
+
+- Lista separada por comas (se ignoran `+`, espacios y guiones al comparar).
+- Si está definida, **solo** esos teléfonos se consultan; todas las demás farmacias del catálogo quedan como `listada`.
+- Un teléfono de la lista que **no está** en el catálogo no se consulta y deja un aviso en el log: la farmacia debe existir en la base. Para usar un número real, actualiza el teléfono de esa fila directamente en Postgres (no edites `data/farmacias.json` ni lo commitees con números reales).
+- Cada número debe ser destinatario de prueba en Meta (WhatsApp Cloud API), en formato E.164 sin `+`.
+- Vacía o sin definir: manda el catálogo.
 
 ## 2. Pruebas exactas del adaptador (15 min)
 
@@ -29,15 +46,17 @@ npm run probar:ia -- "la pastilla de la presión"  # 2. coloquial: debe venir co
 npm run probar:ia -- ruta/receta-sintetica.jpg    # 3. imagen (formato de visión)
 ```
 
-Anotar para cada una: ¿HTTP 200? ¿el JSON valida el esquema a la primera o necesitó el reintento de corrección (se ve en el log `salida invalida`)? ¿ms?
+Anotar para cada una: ¿HTTP 200 (y en qué ruta)? ¿el JSON valida el esquema a la primera o necesitó el reintento de corrección (se ve en el log `salida invalida`)? ¿ms?
 
 Casos a forzar:
 - [ ] Imagen: ¿acepta data URI base64 jpeg? ¿y png? ¿tamaño máximo?
-- [ ] 401 con key mala (`META_API_KEY=x`): debe fallar rápido con "no reintentable", sin crash.
+- [ ] 401 con key mala (`MODEL_API_KEY=x`): debe fallar rápido con "no reintentable", sin crash.
 - [ ] 429: ver el backoff (si se logra provocar; si no, marcar "no probado").
 - [ ] Timeout: el límite es 30 s por intento; si la visión tarda más, subir `TIMEOUT_MS` en `meta.ts`.
 - [ ] El modelo NO debe recomendar, sustituir ni dosificar (revisar `notes` y todos los campos en las 5 recetas).
-- [ ] Probar con `META_JSON_MODE=true`: ¿lo acepta el endpoint?
+- [ ] **Imagen: probar los DOS modos** (`META_IMAGE_MODE=chat` y luego `responses`) con la misma receta; quedarse con el que funcione y anotar cuál.
+- [ ] Razonamiento: ¿la respuesta trae bloques de razonamiento? ¿dónde? ¿el adaptador los descartó y validó solo el texto final (sin el log `salida invalida`)? Si el formato difiere, ajustar `textoDeChat`/`textoDeResponses`.
+- [ ] `META_REASONING_EFFORT=low` (u otro valor válido): ¿lo acepta la API (sin 400)? ¿baja la latencia? Medir ms con y sin.
 
 Si algo falla por formato: corregir `src/ai/meta.ts`, actualizar el banner UNVERIFIED (quitarlo solo para lo realmente confirmado) y el README.
 
