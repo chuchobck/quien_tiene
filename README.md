@@ -65,7 +65,7 @@ Verified by `npm test` (53 tests, vitest) and `npm run simular` (end-to-end, no 
 
 - Webhook that validates, dedupes by WhatsApp `message.id` and enqueues; replies 200 first. Handles `text`, `image`, `location`, `interactive` and template quick-reply `button` messages.
 - BullMQ worker (separate process or embedded), retries with backoff, failed jobs kept as dead-letter, friendly message to the patient when retries run out (unit-tested; no live failure drill).
-- The 90 s close is now a BullMQ delayed job (simulation uses 2.5 s).
+- The close is a BullMQ delayed job (default 90 s via `ESPERA_CIERRE_MS`, never below 60 s, since people answer by hand), and it closes early when every active pharmacy has answered. The simulation uses its own `SIM_ESPERA_CIERRE_MS` (12 s), applied only inside its process.
 - Request state machine with atomic transitions (a double tap on "Sí, buscar" queries pharmacies once).
 - `RecipeReader` interface with zod-validated output; **mock** provider with fixtures (illegible, two medicines, colloquial).
 - Segment normalization (Dolex / Acetaminofén → Paracetamol 500 mg) and ambiguity handling (the patient chooses, the system doesn't).

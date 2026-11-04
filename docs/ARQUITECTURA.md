@@ -19,7 +19,7 @@
 1. `POST /webhook` extrae los mensajes, deduplica con `InboundMessage` (clave primaria = `message.id`), encola con `jobId = message.id` y responde 200 al instante. Si encolar falla, olvida el id para que el reintento de Meta entre.
 2. El worker de mensajes tiene **concurrencia 1** (ver abajo). Procesa un mensaje y enruta (`manejarMensaje`): paciente/farmacia, texto/imagen/ubicación/botón propio/botón de plantilla.
 3. Imagen o texto → `RecipeReader` → `RecipeExtraction` (zod) → cada medicación se resuelve al segmento. 0 → mensaje amable; 1 → confirmación; varias → el paciente elige (máx. 3 botones).
-4. Confirmar → transición atómica `esperando_confirmacion → consultando`; se pregunta a las farmacias activas en paralelo (cada una aislada) y se programa el cierre como job con delay.
+4. Confirmar → transición atómica `esperando_confirmacion → consultando`; se pregunta a las farmacias activas en paralelo (cada una aislada) y se programa el cierre como job con delay: 90 s por defecto (`ESPERA_CIERRE_MS`), con **mínimo de 60 s** (un valor menor se ignora y se avisa en el log). El simulador no usa esa variable: sobreescribe la espera solo dentro de su propio proceso (`SIM_ESPERA_CIERRE_MS`).
 5. Respuestas de farmacia (botón de plantilla o texto) y precio actualizan `PharmacyQuery`. Si ya no queda nada abierto, se cierra antes del delay.
 6. `cerrarSolicitud` es idempotente (transición atómica): solo el primero envía el resultado.
 
