@@ -36,6 +36,21 @@ ACTIVE_PHARMACY_PHONES=593XXXXXXXXX,593YYYYYYYYY
 - Cada número debe ser destinatario de prueba en Meta (WhatsApp Cloud API), en formato E.164 sin `+`.
 - Vacía o sin definir: manda el catálogo.
 
+### Alternativa: `npm run farmacias:demo` (base local)
+
+Pone tus teléfonos en las primeras N farmacias del seed **en tu base local de Postgres**, las deja `activa` y deja el resto `listada`. No toca `data/farmacias.json` ni escribe números en ningún archivo.
+
+```bash
+npm run farmacias:demo -- 593XXXXXXXXX 593YYYYYYYYY
+```
+
+- Imprime el resultado con los teléfonos **enmascarados** (últimos 4 dígitos), una fila por farmacia.
+- Si pasas 2 números, `f1` y `f2` quedan activas con tus números y `f3`–`f5` listadas. Máximo: el número de farmacias del seed (5).
+- Si el pedido es inválido (repetidos, formato raro, o un número que ya es de una farmacia que no se va a tocar), **no cambia nada** y dice por qué.
+- `npm run db:sembrar` deshace todo y vuelve a poner los números falsos del catálogo.
+- Si además defines `ACTIVE_PHARMACY_PHONES`, esa variable manda sobre el estado de la base: usa una o la otra, no las dos.
+- Cada número debe ser destinatario de prueba en Meta. Probado aquí solo contra un Postgres local de apt, no contra Docker.
+
 ## 2. Pruebas exactas del adaptador (15 min)
 
 Con `RECIPE_PROVIDER=meta`:

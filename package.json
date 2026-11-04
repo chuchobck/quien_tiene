@@ -18,7 +18,8 @@
     "db:sembrar": "tsx scripts/sembrar.ts",
     "probar:ia": "tsx scripts/probar-ia.ts",
     "simular": "tsx scripts/simular-flujo.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "farmacias:demo": "tsx scripts/farmacias-demo.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

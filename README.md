@@ -69,7 +69,7 @@ Verified by `npm test` (53 tests, vitest) and `npm run simular` (end-to-end, no 
 - Request state machine with atomic transitions (a double tap on "Sí, buscar" queries pharmacies once).
 - `RecipeReader` interface with zod-validated output; **mock** provider with fixtures (illegible, two medicines, colloquial).
 - Segment normalization (Dolex / Acetaminofén → Paracetamol 500 mg) and ambiguity handling (the patient chooses, the system doesn't).
-- Prisma schema + migration + seed (15 medicine segments, 5 pharmacies; 3 active) on PostgreSQL.
+- Prisma schema + migration + seed (16 medicine segments, 5 pharmacies; 3 active) on PostgreSQL.
 - `WHATSAPP_DRY_RUN=true`: outbound messages go to the console and the `OutboundMessage` table instead of Meta.
 - Phone numbers are masked (last 4 digits) in application logs.
 - Minimal demand view: `GET /farmacias/:id/demanda` (JSON) and `/farmacias/:id/demanda/pagina` (HTML, "Qué te buscaron y no tenías"): aggregated counts per medicine over 7 days, no patient data. It has **no authentication**, and the data is simulation data.
@@ -92,7 +92,7 @@ Verified by `npm test` (53 tests, vitest) and `npm run simular` (end-to-end, no 
 - Reputation and truthfulness scores; follow-up question after a "sí tengo"
 - Webhook signature verification (`X-Hub-Signature-256`)
 - Pharmacy onboarding, authenticated pharmacy panel, subscription plans
-- Full medicine catalog (today: 15 segments)
+- Full medicine catalog (today: 16 segments)
 - PostGIS, deployment (Cloud Run or other)
 
 ## Run it in 3 commands

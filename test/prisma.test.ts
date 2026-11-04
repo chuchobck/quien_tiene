@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { afterAll, describe, expect, it } from 'vitest';
 import { cerrarPrisma, crearStorePrisma, prisma } from '../src/store/prisma.ts';
+import { aplicarFarmaciasDemo } from '../src/store/demo.ts';
 import { sembrarCatalogo } from '../src/store/sembrar.ts';
 
 /** Integracion con PostgreSQL real. Si no hay base alcanzable, se omite (y se dice en el reporte). */
@@ -22,7 +23,7 @@ describe.skipIf(!ok)('Store sobre PostgreSQL (Prisma)', () => {
   it('siembra idempotente y lee catalogo y farmacias', async () => {
     await sembrarCatalogo();
     await sembrarCatalogo();
-    expect((await s.segmentos()).length).toBeGreaterThanOrEqual(15);
+    expect((await s.segmentos()).length).toBe(16);
     expect((await s.farmacias()).filter((f) => f.estado === 'activa')).toHaveLength(3);
     expect((await s.farmaciaPorTelefono('+593 980000001'))?.id).toBe('f1');
   });
@@ -49,5 +50,23 @@ describe.skipIf(!ok)('Store sobre PostgreSQL (Prisma)', () => {
     expect(JSON.stringify(d)).not.toContain('593990009999'); // la demanda no identifica al paciente
     await prisma().pharmacyQuery.deleteMany({ where: { solicitudId: id } });
     await prisma().searchRequest.delete({ where: { id } });
+  });
+
+  it('farmacias:demo en la base: asigna, deja el resto listada y es reversible con el seed', async () => {
+    await sembrarCatalogo();
+    try {
+      const plan = await aplicarFarmaciasDemo(['593990000111', '593980000001']); // cruza con el telefono de f1
+      expect(plan.filter((p) => p.estado === 'activa')).toHaveLength(2);
+      const f = await s.farmacias();
+      expect(f.find((x) => x.id === 'f1')?.telefono).toBe('593990000111');
+      expect(f.find((x) => x.id === 'f2')?.telefono).toBe('593980000001');
+      expect(f.filter((x) => x.estado === 'activa').map((x) => x.id)).toEqual(['f1', 'f2']);
+      await expect(aplicarFarmaciasDemo(['593980000005'])).rejects.toThrow(/ya pertenece/);
+      // El pedido invalido no cambio nada.
+      expect((await s.farmacias()).find((x) => x.id === 'f1')?.telefono).toBe('593990000111');
+    } finally {
+      await sembrarCatalogo(); // deja la base como el seed
+    }
+    expect((await s.farmacias()).filter((x) => x.estado === 'activa')).toHaveLength(3);
   });
 });
