@@ -17,11 +17,22 @@
 ## Flujo de un mensaje
 
 1. `POST /webhook` extrae los mensajes, deduplica con `InboundMessage` (clave primaria = `message.id`), encola con `jobId = message.id` y responde 200 al instante. Si encolar falla, olvida el id para que el reintento de Meta entre.
-2. El worker (`manejarMensaje`) enruta: paciente/farmacia, texto/imagen/ubicación/botón propio/botón de plantilla.
+2. El worker de mensajes tiene **concurrencia 1** (ver abajo). Procesa un mensaje y enruta (`manejarMensaje`): paciente/farmacia, texto/imagen/ubicación/botón propio/botón de plantilla.
 3. Imagen o texto → `RecipeReader` → `RecipeExtraction` (zod) → cada medicación se resuelve al segmento. 0 → mensaje amable; 1 → confirmación; varias → el paciente elige (máx. 3 botones).
 4. Confirmar → transición atómica `esperando_confirmacion → consultando`; se pregunta a las farmacias activas en paralelo (cada una aislada) y se programa el cierre como job con delay.
 5. Respuestas de farmacia (botón de plantilla o texto) y precio actualizan `PharmacyQuery`. Si ya no queda nada abierto, se cierra antes del delay.
 6. `cerrarSolicitud` es idempotente (transición atómica): solo el primero envía el resultado.
+
+## Orden y concurrencia
+
+El worker de `mensajes` corre con **concurrencia 1**: procesa un mensaje a la vez, en orden de llegada. Motivo: con concurrencia 5, un "Sí tengo" y el precio que la farmacia manda enseguida podían procesarse en paralelo y el precio se perdía (se descarta si la respuesta aún no es `si_tengo`).
+
+Costos y límites, a propósito explícitos:
+
+- Un mensaje lento (leer una receta con el modelo puede tardar segundos) retrasa a todos los que vienen detrás, de cualquier paciente o farmacia. Con el tráfico de un demo es aceptable; con mucho tráfico habría que agrupar por remitente (no construido).
+- La garantía de orden vale con **un solo proceso worker**. Si arrancas el worker embebido en el servidor Y `npm run worker` a la vez, o varios workers, el orden entre procesos no está garantizado. Usa uno solo.
+- El worker de `cierres` mantiene concurrencia 5: cerrar solicitudes distintas es independiente.
+- Sin medir: no hay cifras de latencia con carga; solo se razonó el orden. La simulación lo ejercita pero no mide rendimiento.
 
 ## Máquina de estados (`core/estados.ts`)
 

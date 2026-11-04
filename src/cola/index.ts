@@ -59,9 +59,13 @@ export function iniciarPlanificador(): void {
 export function iniciarWorkers(): () => Promise<void> {
   iniciarPlanificador();
 
+  // Concurrencia 1: los mensajes se procesan de a uno, en el orden en que se encolaron. Asi el
+  // "Sí tengo" de una farmacia nunca se cruza con su precio. Costo: un mensaje lento (leer una
+  // receta con el modelo) retrasa a los que vienen detras. Vale solo con UN proceso worker: con
+  // varios, el orden entre procesos no esta garantizado.
   const wMensajes = new Worker<MensajeEntrante>('mensajes', (job) => manejarMensaje(job.data), {
     connection: redis(),
-    concurrency: 5,
+    concurrency: 1,
   });
   const wCierres = new Worker<{ solicitudId: string }>('cierres', (job) => cerrarSolicitud(job.data.solicitudId), {
     connection: redis(),
