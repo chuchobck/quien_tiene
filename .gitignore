@@ -1,7 +1,7 @@
 # Secretos. NUNCA quitar esta linea.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 node_modules/
 dist/
@@ -22,3 +22,9 @@ grabacion/
 receta*.jpg
 receta*.jpeg
 receta*.png
+uploads/
+*.sql
+!prisma/migrations/**/*.sql
+*.dump
+*.bak
+dumps/
