@@ -1,3 +1,5 @@
+> **Nota:** guía histórica del prototipo del DevFest (sep 2026, con Gemini). Para el hackathon ver `docs/MANANA.md` y `docs/ARQUITECTURA.md`.
+
 # Arranque — las primeras 2 horas
 
 No escribas código de producto hasta terminar esto. Son los tres experimentos

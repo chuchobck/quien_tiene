@@ -2,10 +2,10 @@
   {
     "id": "f1",
     "nombre": "Farmacia San Rafael",
-    "telefono": "593987654321",
+    "telefono": "593980000001",
     "direccion": "Av. Ilaló y Río Pita, San Rafael",
     "lat": -0.3245,
-    "lng": -78.4460,
+    "lng": -78.446,
     "estado": "activa"
   },
   {
@@ -15,24 +15,24 @@
     "direccion": "Av. General Rumiñahui, Sangolquí",
     "lat": -0.3352,
     "lng": -78.4491,
-    "estado": "listada"
+    "estado": "activa"
   },
   {
     "id": "f3",
     "nombre": "Farmacia El Valle",
     "telefono": "593980000003",
     "direccion": "Calle Luis Cordero, Sangolquí",
-    "lat": -0.3310,
+    "lat": -0.331,
     "lng": -78.4395,
-    "estado": "listada"
+    "estado": "activa"
   },
   {
     "id": "f4",
     "nombre": "Farmacia Cotogchoa",
     "telefono": "593980000004",
     "direccion": "Vía a Cotogchoa",
-    "lat": -0.3480,
-    "lng": -78.4520,
+    "lat": -0.348,
+    "lng": -78.452,
     "estado": "listada"
   },
   {
@@ -40,8 +40,8 @@
     "nombre": "Botica Selva Alegre",
     "telefono": "593980000005",
     "direccion": "Selva Alegre, Sangolquí",
-    "lat": -0.3190,
-    "lng": -78.4550,
+    "lat": -0.319,
+    "lng": -78.455,
     "estado": "listada"
   }
 ]

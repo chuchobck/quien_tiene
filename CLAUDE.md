@@ -22,11 +22,18 @@ Contexto completo del producto: `docs/alcance.md`.
 
 ## 2. Estado actual
 
-**Fase: demo para el DevFest Quito 2026.** Fecha límite 18 de septiembre de 2026.
+**Fase: Meta Global AI Developer Hackathon (Cerebral Valley + Meta), track
+Desarrollador Independiente, en solitario.** Entrega: miércoles 4 de noviembre
+de 2026, 9:00 PM hora de Ecuador.
 
-El objetivo de esta fase es un bucle central funcionando de punta a punta con
-3 farmacias reales, grabable en video. No es el producto terminado y no debe
-pretender serlo.
+Antes hubo un prototipo para el DevFest Quito 2026 (sep 2026, con Gemini). Eso se
+declara tal cual en el README: lo del hackathon es lo construido desde entonces.
+
+**Regla de honestidad (no negociable):** README, docs y todo texto que vaya a
+jueces describen SOLO lo que existe y fue probado. Lo no construido va en una
+sección "Plan". Lo que no se pudo verificar (p. ej. el adaptador de la Meta
+Model API sin llave) se marca "sin verificar". No se afirma el uso de ninguna
+herramienta que no se usó.
 
 ---
 
@@ -35,10 +42,13 @@ pretender serlo.
 | Decisión | Alternativas descartadas |
 |---|---|
 | **Meta WhatsApp Cloud API** | Evolution API (riesgo de legitimidad y de bloqueo del número), Twilio (costo innecesario sobre la misma API) |
-| **Gemini** para recetas y lenguaje coloquial | OCR tradicional: no lee letra manuscrita de médico |
-| **Google Maps Platform** para distancia caminando | Línea recta: miente en terreno con pendientes |
-| **Google Cloud Run** para el backend | Requisito explícito del reto, y provee HTTPS estable para el webhook |
-| **Node + TypeScript strict** | — |
+| **Modelos de Meta (Meta Model API) reemplazan a Gemini para el hackathon**, detrás de la interfaz `RecipeReader` (`src/ai/`). Gemini y un mock quedan como proveedores intercambiables | OCR tradicional: no lee letra manuscrita de médico |
+| **OSRM** para distancia caminando, con respaldo Haversine | Google Maps (exige facturación), línea recta (miente en terreno con pendientes) |
+| **Fastify + Node + TypeScript strict** | NestJS (no migrar) |
+| **PostgreSQL + Prisma, Redis + BullMQ** (ahora SÍ en alcance) | Store en memoria (queda solo como doble de pruebas) |
+
+**Cloud Run ya no es obligatorio** (era requisito del reto del DevFest, no de este
+hackathon). El `Dockerfile` existe pero el despliegue está sin probar.
 
 **Descartado del producto:** alertas de precio sobre el techo legal. La farmacia
 es el cliente que paga y no se arranca vigilándola; además el dato público del
@@ -56,16 +66,22 @@ MSP es de fiabilidad dudosa. No reintroducir.
   `maps/` no sabe qué es una receta. El único que conoce el flujo completo es
   `core/orquestador.ts`.
 - **`store/` es la única puerta a la persistencia.** Ningún otro módulo toca
-  estructuras de datos directamente. Esto es lo que permite cambiar memoria por
-  PostgreSQL sin reescribir nada más.
+  Prisma ni estructuras de datos directamente. Hay dos implementaciones de la
+  misma interfaz `Store`: Prisma (real) y memoria (solo pruebas).
+- **`ai/` es la única puerta a los modelos.** El resto habla con `RecipeReader`
+  y recibe `RecipeExtraction` validada con zod; nunca con un proveedor concreto.
 - **Fallar temprano en configuración, degradar con gracia en runtime.**
   `config.ts` revienta al arrancar si falta una variable. Pero si Maps falla en
   medio de una consulta, se usa el respaldo Haversine y el flujo continúa: nunca
-  se deja al paciente sin respuesta por culpa de una API de terceros.
+  se deja al paciente sin respuesta por culpa de una API de terceros. Si un job
+  agota reintentos, el paciente recibe un mensaje amable de error.
+- **Los logs no llevan teléfonos completos:** `util/log.ts` los enmascara
+  (últimos 4 dígitos). El repo es público.
 - **Los webhooks son idempotentes.** Meta reintenta. Todo mensaje entrante se
   deduplica por `message.id` antes de procesarse.
-- **Responder 200 a Meta de inmediato**, antes de procesar. Si se procesa primero,
-  Meta reintenta y se duplican los mensajes salientes.
+- **Responder 200 a Meta de inmediato**, antes de procesar. El webhook solo
+  valida, deduplica (tabla `InboundMessage`, unique) y encola en BullMQ; el
+  trabajo lo hace el worker.
 
 ---
 
@@ -101,17 +117,18 @@ Los comentarios de código también van en español.
 
 ## 7. Qué NO construir en esta fase
 
-Pedir confirmación antes de tocar cualquiera de estas. Están definidas en
-`docs/alcance.md` y son fases posteriores, no alcance del demo:
+Pedir confirmación antes de tocar cualquiera de estas. Siguen siendo fases
+posteriores (ver `docs/alcance.md`):
 
 - Cascada por olas con priorización por historial
 - Puntajes de reputación y veracidad
-- PostgreSQL, Prisma, migraciones
-- BullMQ, Redis, colas
-- Panel web de farmacia
+- Panel web de farmacia con autenticación (solo existe la vista mínima de demanda)
 - Flujo de inscripción de farmacias
 - Planes de suscripción y cobros
 - Delivery, pagos, carrito
+
+Ya NO están vedados (entran en alcance del hackathon): PostgreSQL, Prisma,
+migraciones, BullMQ, Redis, colas.
 
 ---
 

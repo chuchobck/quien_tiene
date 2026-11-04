@@ -1,167 +1,124 @@
-# ¿Quién Tiene?
+# ¿Quién Tiene? — Who Has It?
 
-**Buscador de disponibilidad de medicinas en farmacias del Ecuador, por WhatsApp.**
+**A WhatsApp search for medicine availability in Ecuadorian pharmacies.**
+Built solo for the Meta Global AI Developer Hackathon (Cerebral Valley + Meta), Independent Developer track.
 
-Propuesta para el reto INNOVATING TOGETHER — DevFest Quito 2026 · Track Builder
+License: [MIT](LICENSE) · User-facing text is in Ecuadorian Spanish on purpose; the code comments too.
 
----
-
-## El problema
-
-En Ecuador la disponibilidad de medicamentos en la red pública cayó del 79% en enero de 2025 al 68% en mayo de 2026. Cuatro de cada diez medicamentos planificados no están disponibles, y el médico termina derivando al paciente a comprar en farmacia privada.
-
-Ahí empieza el recorrido: caminar de farmacia en farmacia, llamar, tomar un bus, y la mitad de las veces volver con las manos vacías. Mientras tanto, a cuatro cuadras sí había, en una farmacia de barrio que el paciente no conoce, con la caja en la vitrina esperando a caducarse.
-
-**El problema no es que falte medicina en el país. Es que nadie sabe qué hay en cada vitrina.**
-
-## La solución
-
-Un número de WhatsApp. Mandas foto de tu receta, o escribes el nombre del medicamento, y en menos de un minuto sabes qué farmacias cerca de ti lo tienen ahorita, a qué precio y a qué distancia caminando.
-
-Detrás hay una red de farmacias inscritas que reciben la consulta y responden con un botón.
-
-**Este es un intercambio real, capturado durante las pruebas de este proyecto:**
-
-```
-Paciente  → [foto de una receta manuscrita real, con letra de médico]
-Sistema   → Estoy leyendo tu receta, dame un segundo.
-Sistema   → Leí *Dolex (Acetaminofén 500 mg)*. ¿Es correcto?
-Paciente  → Sí, buscar
-Sistema   → Buscando en farmacias cerca de ti...
-
-          ⟳ consulta simultánea a las farmacias de la zona
-
-Sistema   → 1 farmacia(s) tienen *Dolex (Acetaminofén 500 mg)*:
-            🟢 Farmacia San Rafael · 1.2 km · $5.12
-            Recuerda llevar tu receta.
-```
-
-Nota el detalle: el paciente escribió y vio "Dolex (Acetaminofén)" del principio al fin. Nunca se le mostró "Paracetamol", aunque es el mismo principio activo y es el término con el que se le preguntó a la farmacia por detrás. El paciente no necesita saber de equivalencias farmacológicas, solo quiere su medicina con el nombre que él conoce.
-
-Sin aplicación que descargar, sin cuenta, sin contraseña. Una persona de 63 años ya sabe usar WhatsApp.
-
-## Herramientas de Google, y dónde exactamente
-
-| Herramienta | Archivo | Qué resuelve |
-|---|---|---|
-| **Gemini** | [`src/gemini/client.ts`](src/gemini/client.ts) | Lee recetas manuscritas y normaliza lenguaje coloquial. Probado con una receta real de un médico, letra a mano: identificó correctamente principio activo, concentración y marca comercial |
-| **Cloud Run** | [`Dockerfile`](Dockerfile) | Backend sin servidor, listo para desplegar. En esta demo el servidor corrió localmente (Node/Fastify) expuesto por túnel durante las pruebas; el contenedor queda listo para el siguiente paso |
-
-El reto pide integrar **al menos una** herramienta de Google. Gemini la cumple de sobra: es el punto más difícil de todo el flujo (letra manuscrita de médico) y es donde un modelo multimodal aporta algo que ninguna otra pieza del sistema podría.
-
-**Sobre la distancia caminando:** se evaluó Google Maps Platform, pero su Distance Matrix API exige vincular una cuenta de facturación activa, algo que no tiene sentido para un MVP de reto estudiantil. Se usa en su lugar el servidor público de [OSRM](http://project-osrm.org) (OpenStreetMap), gratuito y sin clave, con perfil de caminar real, no de manejar. Si esa API pública no responde, el sistema cae a un cálculo aproximado por distancia recta, para que el paciente nunca se quede sin respuesta por culpa de un tercero.
-
-## Arquitectura
-
-```
-WhatsApp (paciente)                    WhatsApp (farmacias)
-        │                                       ▲
-        ▼                                       │
-┌───────────────────────────────────────────────────────┐
-│  src/whatsapp/webhook.ts   verificación + idempotencia │
-├───────────────────────────────────────────────────────┤
-│  src/core/orquestador.ts   máquina de estados          │
-│     creada → consultando → resuelta | sin_resultados   │
-├──────────────┬────────────────┬───────────────────────┤
-│ gemini/      │ maps/          │ core/catalogo.ts      │
-│ lee receta   │ distancia      │ resuelve al segmento  │
-│ (Google)     │ caminando      │ de mercado            │
-│              │ (OSRM)         │                        │
-├───────────────────────────────────────────────────────┤
-│  src/store/  memoria ahora · PostgreSQL + PostGIS después │
-└───────────────────────────────────────────────────────┘
-```
-
-El **segmento de mercado** (principio activo + concentración + forma) es la clase de equivalencia que ya define la regulación ecuatoriana de precios. El sistema no decide equivalencias por su cuenta: usa las que el Estado ya agrupó, y con eso resuelve tanto sinónimos regionales (Acetaminofén = Paracetamol) como marcas comerciales (Dolex, Renitec, Cozaar) al mismo segmento.
-
-`src/store/` está aislado a propósito. Cambiar memoria por PostgreSQL toca un solo módulo.
-
-## Qué está construido y qué es alcance
-
-Esto es un demo funcional del bucle central, probado de punta a punta con dos números de WhatsApp reales, no el producto terminado. La honestidad sobre esa línea importa:
-
-**Funcionando y probado con tráfico real**
-- Webhook de Meta Cloud API con verificación e idempotencia
-- Lectura de receta por foto real (letra manuscrita de médico) y por texto coloquial, con Gemini
-- El paciente ve siempre su propio término (marca, nombre coloquial); la traducción al nombre que reconoce la farmacia ocurre por detrás, nunca a la vista del paciente
-- Resolución al segmento de mercado, incluida equivalencia entre nombres regionales (Acetaminofén/Paracetamol)
-- Consulta a farmacias con plantilla aprobada de WhatsApp, con botones de respuesta rápida
-- Captura de precio declarado
-- Distancia caminando vía OSRM, con respaldo automático si la API externa falla
-- Reintento automático ante fallos transitorios de red al leer con Gemini
-- Cierre de solicitud y respuesta ordenada al paciente, con tiempo real de resolución
-
-**Fuera de este demo, definido en [`docs/alcance-v1.0.docx`](docs/alcance-v1.0.docx)**
-- Cascada por olas con priorización por historial (aquí se consulta a todas las farmacias activas a la vez)
-- Puntajes de reputación y veracidad de farmacias
-- Persistencia en PostgreSQL + PostGIS
-- Catálogo completo (aquí van 16 medicamentos comunes)
-- Inscripción de farmacias, panel de estadísticas y planes de suscripción
-- Despliegue en Cloud Run (Dockerfile listo, pendiente de desplegar)
-
-## Límite legal
-
-La plataforma **no es una farmacia**. No dispensa, no vende, no cobra, no entrega, no sugiere sustitutos y no da dosis. Es una capa de información y ruteo, y mientras se quede ahí no requiere permiso de ARCSA.
-
-Para todo medicamento recetado el flujo termina siempre igual: *"esta farmacia lo tiene, ve con tu receta"*. Nunca en una transacción.
-
-## Cómo correrlo
-
-Requiere Node 20 o superior.
-
-```bash
-git clone <este-repo>
-cd quien-tiene
-npm install
-cp .env.example .env     # llenar las claves (ver abajo)
-npm run dev
-```
-
-**Claves necesarias en `.env`:**
-- `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`: desde Meta for Developers
-- `GEMINI_API_KEY`: gratis en `aistudio.google.com/apikey`, sin tarjeta
-- `MAPS_API_KEY`: ya no se usa (se migró a OSRM), se puede dejar vacía
-
-Para exponer el webhook a Meta durante el desarrollo:
-
-```bash
-ngrok http 8081
-# la URL https va en Meta → WhatsApp → Configuración → Webhook
-# el token de verificación debe coincidir con WEBHOOK_VERIFY_TOKEN
-```
-
-**Probar Gemini por separado, sin levantar el servidor:**
-
-```bash
-npm run probar:gemini -- ruta/a/receta.jpg
-npm run probar:gemini -- "la pastilla de la presión"
-```
-
-## Estructura
-
-```
-src/
-├── config.ts           variables de entorno, validación perezosa por seccion
-├── types.ts             modelo del dominio
-├── whatsapp/            cliente Cloud API + webhook
-├── gemini/               lectura de recetas y normalización, con reintento
-├── maps/                distancia caminando (OSRM + respaldo)
-├── core/                catálogo, orquestador
-└── store/               persistencia (memoria → PostgreSQL)
-data/
-├── medicamentos.json    catálogo semilla
-└── farmacias.json       farmacias del piloto
-docs/
-├── alcance-v1.0.docx     producto completo, modelo de negocio, marco legal
-└── 00-arranque.md       guía de arranque y validación del proyecto
-```
-
-## Modelo de negocio, en dos líneas
-
-Gratis para el paciente, siempre. La farmacia paga cuando quiere ver la inteligencia sobre su propio negocio: qué le buscaron y no tenía, cuántos clientes recibió, qué se le va a caducar.
-
-Detalle completo en [`docs/alcance-v1.0.docx`](docs/alcance-v1.0.docx).
+> **Honesty rule for this README:** it only describes what exists and was tested.
+> Anything not built is under [Plan](#plan-not-built). Anything that could not be
+> verified is marked **unverified**.
 
 ---
 
-Construido en el Valle de los Chillos, Sangolquí.
+## The problem
+
+Public-network medicine availability in Ecuador fell from 79% (Jan 2025) to 68% (May 2026), so doctors send patients to buy at private pharmacies. Then the patient walks pharmacy to pharmacy with no information, while a neighborhood pharmacy a few blocks away may have the box sitting on the shelf.
+
+The problem isn't national scarcity. **Nobody knows what is on each shelf.** The product is that data (what medicine is in which pharmacy); WhatsApp is only the interface.
+
+## The flow
+
+```
+Patient  → [photo of a prescription]  or  "la pastilla de la presión"
+Bot      → Leí *Dolex (Acetaminofén 500 mg)*. ¿Es correcto?     [Sí, buscar] [No, corregir]
+Patient  → Sí, buscar
+          ⟳ the active pharmacies are asked, each answers with a button (+ price)
+Bot      → 1 farmacia(s) tienen *Dolex (Acetaminofén 500 mg)*:
+           🟢 Farmacia San Rafael · 808 m · $5.12
+           Recuerda llevar tu receta.
+```
+
+(The exchange above is output from the **simulation** with the **mock** AI provider, see below. It is not a real chat.)
+
+Product rules enforced in code and prompts: never suggest a substitute, dose or treatment; never close a transaction (it always ends in "take your prescription"); the patient never pays; the patient always sees **their own** term (they typed "Dolex" → they see "Dolex", never "Paracetamol"; the catalog name is only used behind the scenes to ask the pharmacy); "no tengo" is a valuable answer, silence is what gets penalized. If a prescription lists several medicines, the patient picks one (max 3 buttons).
+
+## Architecture
+
+```
+ WhatsApp (patient / pharmacy)
+          │  Meta Cloud API webhook
+          ▼
+ ┌──────────────────────────┐   dedupe by message.id (InboundMessage, unique)
+ │ Fastify  /webhook        │──► enqueue ──► Redis (BullMQ "mensajes")      → 200 immediately
+ └──────────────────────────┘                          │
+                                                       ▼
+                                          ┌─────────────────────────┐
+                                          │ Worker (npm run worker) │  retries + backoff,
+                                          │  core/orquestador.ts    │  failed set = dead-letter,
+                                          └──┬───────┬──────────┬───┘  friendly error to patient
+                                             │       │          │
+                              ai/ RecipeReader   maps/ (OSRM     store/ (Prisma → PostgreSQL)
+                              mock | gemini |    + Haversine
+                              meta (unverified)  fallback)
+                                             │
+                          delayed job "cierres" (BullMQ) closes the request with what came back
+```
+
+More detail in [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
+
+## Built and tested vs. plan
+
+### Built and tested (this is what the evidence below covers)
+
+Verified by `npm test` (38 tests, vitest) and `npm run simular` (end-to-end, no phones), run against **PostgreSQL 16 and Redis 7 installed locally with apt**:
+
+- Webhook that validates, dedupes by WhatsApp `message.id` and enqueues; replies 200 first. Handles `text`, `image`, `location`, `interactive` and template quick-reply `button` messages.
+- BullMQ worker (separate process or embedded), retries with backoff, failed jobs kept as dead-letter, friendly message to the patient when retries run out (unit-tested; no live failure drill).
+- The 90 s close is now a BullMQ delayed job (simulation uses 2.5 s).
+- Request state machine with atomic transitions (a double tap on "Sí, buscar" queries pharmacies once).
+- `RecipeReader` interface with zod-validated output; **mock** provider with fixtures (illegible, two medicines, colloquial).
+- Segment normalization (Dolex / Acetaminofén → Paracetamol 500 mg) and ambiguity handling (the patient chooses, the system doesn't).
+- Prisma schema + migration + seed (15 medicine segments, 5 pharmacies; 3 active) on PostgreSQL.
+- `WHATSAPP_DRY_RUN=true`: outbound messages go to the console and the `OutboundMessage` table instead of Meta.
+- Phone numbers are masked (last 4 digits) in application logs.
+- Minimal demand view: `GET /farmacias/:id/demanda` (JSON) and `/farmacias/:id/demanda/pagina` (HTML, "Qué te buscaron y no tenías"): aggregated counts per medicine over 7 days, no patient data. It has **no authentication**, and the data is simulation data.
+
+### What these tests do NOT prove
+
+- **Meta Model API adapter: unverified.** The official docs were not reachable from the build environment and there was no API key. The adapter assumes an OpenAI-style Chat Completions API (see the `UNVERIFIED` banner in [`src/ai/meta.ts`](src/ai/meta.ts)). Its tests run against a simulated `fetch` and only check our retry/validation logic, not the real request/response format. The exact checklist to run with the key is in [`docs/MANANA.md`](docs/MANANA.md).
+- **No real prescription image has been read by any provider in this hackathon build.** The only provider exercised end to end is the mock.
+- The live WhatsApp send path (non-dry-run) was not re-tested after this refactor.
+- `docker-compose.yml` is **untested**: the build sandbox had the Docker CLI but no daemon. The `Dockerfile` is also untested.
+- No response-time figures are claimed: the simulation uses a mock and has no network latency to measure.
+
+### AI provider used in the demo
+
+**Not yet decided/measured.** Until a real run is done, the only verified provider is `mock`. This line will be updated with the provider and the measured time after the live run (checklist in `docs/MANANA.md`).
+
+### Plan (not built)
+
+- Waves/cascade of pharmacy queries prioritized by history (today every active pharmacy is asked at once)
+- Reputation and truthfulness scores; follow-up question after a "sí tengo"
+- Webhook signature verification (`X-Hub-Signature-256`)
+- Pharmacy onboarding, authenticated pharmacy panel, subscription plans
+- Full medicine catalog (today: 15 segments)
+- PostGIS, deployment (Cloud Run or other)
+
+## Run it in 3 commands
+
+Requires Node 20+ and PostgreSQL 16 + Redis 7 (`docker compose up -d` provides them, untested; or local services).
+
+```bash
+npm install && cp .env.example .env && docker compose up -d
+npx prisma migrate deploy && npm run db:sembrar
+npm run simular     # end-to-end with fake webhooks, mock AI, dry-run WhatsApp
+```
+
+Other commands: `npm run dev` (server + embedded worker), `npm run worker` (separate worker, with `WORKER_EMBEBIDO=false` on the server), `npm test`, `npm run typecheck`, `npm run probar:ia -- "texto" | ruta/receta.jpg`.
+
+Config: see [`.env.example`](.env.example). `RECIPE_PROVIDER=mock|gemini|meta`.
+
+## Transparency: what existed before the hackathon
+
+A prototype existed before this hackathon (DevFest Quito 2026, Sept 2026, 2 commits: `86133fd`, `964bc49`): Fastify + WhatsApp Cloud API + **Gemini** + OSRM, in-memory store, a `setTimeout` close, no tests. Its README reported tests with real WhatsApp traffic and a handwritten prescription; that was not re-verified here.
+
+**Done during the hackathon** (see the git history after `964bc49`): public-repo hygiene and MIT license, PostgreSQL + Prisma, Redis + BullMQ, the `RecipeReader` abstraction with mock / Gemini / Meta providers, multi-medicine selection, dry-run mode, the simulation script, the vitest suite and the demand view.
+
+## Legal boundary
+
+The platform is not a pharmacy: it doesn't dispense, sell, charge, deliver, suggest substitutes or give doses. For prescription medicine the flow always ends in "this pharmacy has it, go with your prescription".
+
+## License
+
+[MIT](LICENSE).

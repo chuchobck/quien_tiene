@@ -1,3 +1,6 @@
+import { config } from '../config.ts';
+import { log } from '../util/log.ts';
+
 export interface Distancia {
   texto: string;
   metros: number;
@@ -16,6 +19,7 @@ export async function distanciaCaminando(
   origen: { lat: number; lng: number },
   destino: { lat: number; lng: number }
 ): Promise<Distancia> {
+  if (!config.maps.usarOsrm) return aproximada(origen, destino);
   const coords = `${origen.lng},${origen.lat};${destino.lng},${destino.lat}`;
   const url = `https://router.project-osrm.org/route/v1/foot/${coords}?overview=false`;
 
@@ -34,7 +38,7 @@ export async function distanciaCaminando(
     }
     throw new Error(`OSRM respondio codigo: ${data.code}`);
   } catch (err) {
-    console.error('[maps] OSRM fallo, uso distancia aproximada:', err);
+    log.warn('[maps] OSRM fallo, uso distancia aproximada', err);
     return aproximada(origen, destino);
   }
 }
