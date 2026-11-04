@@ -1,0 +1,25 @@
+# Infra local: Postgres 16 + Redis 7. Solo para desarrollo.
+# SIN PROBAR en la sesion de construccion (ahi no habia daemon de Docker);
+# las pruebas se corrieron contra Postgres 16 y Redis 7 instalados con apt.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: quientiene
+      POSTGRES_PASSWORD: quientiene
+      POSTGRES_DB: quientiene
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quientiene"]
+      interval: 5s
+      retries: 10
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+volumes:
+  pgdata:

@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EstadoFarmacia {
+  listada
+  activa
+  integrada
+}
+
+enum EstadoSolicitud {
+  esperando_seleccion
+  esperando_confirmacion
+  consultando
+  resuelta
+  sin_resultados
+}
+
+enum RespuestaFarmacia {
+  si_tengo
+  no_tengo
+  sin_respuesta
+}
+
+model Pharmacy {
+  id        String         @id
+  nombre    String
+  telefono  String         @unique
+  direccion String
+  lat       Float
+  lng       Float
+  estado    EstadoFarmacia
+  consultas PharmacyQuery[]
+}
+
+model MedicineSegment {
+  id                 String   @id
+  principioActivo    String
+  concentracion      String
+  forma              String
+  nombresComerciales String[]
+  coloquiales        String[]
+  solicitudes        SearchRequest[]
+}
+
+model SearchRequest {
+  id               String          @id
+  telefonoPaciente String
+  segmentoId       String?
+  segmento         MedicineSegment? @relation(fields: [segmentoId], references: [id])
+  textoDetectado   String?
+  /// Opciones pendientes cuando la receta trae varios medicamentos: [{ texto, segmentoId }]
+  opciones         Json?
+  estado           EstadoSolicitud
+  lat              Float
+  lng              Float
+  creadaEn         DateTime        @default(now())
+  cerradaEn        DateTime?
+  consultas        PharmacyQuery[]
+
+  @@index([telefonoPaciente, creadaEn])
+  @@index([segmentoId, creadaEn])
+}
+
+model PharmacyQuery {
+  id             String            @id @default(uuid())
+  solicitudId    String
+  solicitud      SearchRequest     @relation(fields: [solicitudId], references: [id])
+  farmaciaId     String
+  farmacia       Pharmacy          @relation(fields: [farmaciaId], references: [id])
+  respuesta      RespuestaFarmacia @default(sin_respuesta)
+  precio         Float?
+  distanciaTexto String?
+  distanciaMetros Int?
+  /// true mientras la farmacia aun tiene algo pendiente por contestar (si/no o precio)
+  abierta        Boolean           @default(true)
+  enviadaEn      DateTime          @default(now())
+  respondidaEn   DateTime?
+
+  @@unique([solicitudId, farmaciaId])
+  @@index([farmaciaId, enviadaEn])
+}
+
+/// Idempotencia: el id de WhatsApp (wamid) es la clave primaria, un reintento de Meta choca aqui.
+model InboundMessage {
+  id         String   @id
+  tipo       String
+  recibidoEn DateTime @default(now())
+}
+
+/// Registro de mensajes salientes (en WHATSAPP_DRY_RUN=true es lo unico que pasa).
+model OutboundMessage {
+  id       Int      @id @default(autoincrement())
+  a        String
+  tipo     String
+  cuerpo   Json
+  dryRun   Boolean
+  creadoEn DateTime @default(now())
+
+  @@index([a, id])
+}
