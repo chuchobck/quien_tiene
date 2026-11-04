@@ -15,6 +15,11 @@ function opt(clave: string, porDefecto: string): string {
   return valor && valor.trim() !== '' ? valor.trim() : porDefecto;
 }
 
+/** Cierre de una solicitud con lo que haya: 90 s por defecto, nunca menos de 60 s. */
+export const ESPERA_CIERRE_POR_DEFECTO_MS = 90_000;
+export const ESPERA_CIERRE_MINIMA_MS = 60_000;
+let avisoMinimoMostrado = false;
+
 /**
  * Cada sección valida solo cuando se lee, no al importar el modulo.
  * Asi "probar:gemini" no exige tener WHATSAPP_TOKEN ni MAPS_API_KEY:
@@ -115,7 +120,18 @@ export const config = {
     },
     /** Espera antes de cerrar una solicitud con lo que haya. */
     get esperaCierreMs() {
-      return Number(opt('ESPERA_CIERRE_MS', '90000'));
+      const pedido = Number(opt('ESPERA_CIERRE_MS', String(ESPERA_CIERRE_POR_DEFECTO_MS)));
+      if (!Number.isFinite(pedido)) return ESPERA_CIERRE_POR_DEFECTO_MS;
+      if (pedido < ESPERA_CIERRE_MINIMA_MS) {
+        // En el demo hay personas respondiendo: un cierre corto dejaria al paciente sin las respuestas.
+        // Esta variable NO puede acortarlo por debajo del minimo; el simulador usa otro mecanismo.
+        if (!avisoMinimoMostrado) {
+          avisoMinimoMostrado = true;
+          console.error(`[config] ESPERA_CIERRE_MS=${pedido} es menor que el minimo (${ESPERA_CIERRE_MINIMA_MS} ms): se usa el minimo.`);
+        }
+        return ESPERA_CIERRE_MINIMA_MS;
+      }
+      return pedido;
     },
   },
   servidor: {

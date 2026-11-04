@@ -15,20 +15,23 @@ process.env.OSRM_ACTIVO = 'false';
 // Corto (no 90 s) pero holgado: el job con delay cierra "con lo que haya". Si el delay vence ANTES de que
 // F1/F2 contesten, el producto cierra bien (paciente recibe "Ninguna farmacia...") y esta simulacion
 // pierde su premisa; por eso se detecta y se reporta aparte (ver "cierre prematuro" mas abajo).
-process.env.ESPERA_CIERRE_MS ??= '12000';
-const ESPERA_CIERRE_MS = Number(process.env.ESPERA_CIERRE_MS);
+// Variable PROPIA del simulador (SIM_...): ESPERA_CIERRE_MS es del producto y tiene un minimo de 60 s.
+const ESPERA_CIERRE_MS = Number(process.env.SIM_ESPERA_CIERRE_MS ?? '12000');
 process.env.WEBHOOK_VERIFY_TOKEN ??= 'simulacion';
 
 const { crearApp } = await import('../src/app.ts');
 const { iniciarWorkers, cerrarCola } = await import('../src/cola/index.ts');
 const { store } = await import('../src/store/index.ts');
 const { sembrarCatalogo } = await import('../src/store/sembrar.ts');
+const { fijarEsperaCierreSimulada } = await import('../src/core/planificador.ts');
 const { cerrarPrisma } = await import('../src/store/prisma.ts');
 
 const F1 = '593980000001'; // Farmacia San Rafael: tiene, a $5.12
 const F2 = '593980000002'; // Botica La Salud: no tiene
 // F3 (593980000003) no contesta: se cierra por el job con delay.
 const PACIENTE = `59399${String(Math.floor(Math.random() * 1e7)).padStart(7, '0')}`;
+const F3 = '593980000003';
+const PACIENTE3 = `59399${String(Math.floor(Math.random() * 1e7)).padStart(7, '0')}`;
 const PACIENTE2 = `59399${String(Math.floor(Math.random() * 1e7)).padStart(7, '0')}`;
 const corrida = Date.now();
 let contador = 0;
@@ -40,6 +43,7 @@ function verificar(ok: boolean, descripcion: string): void {
   if (!ok) fallos++;
 }
 
+fijarEsperaCierreSimulada(ESPERA_CIERRE_MS); // solo en este proceso
 await sembrarCatalogo();
 const app = crearApp(false);
 await app.listen({ port: 0, host: '127.0.0.1' });
@@ -67,7 +71,7 @@ const botonPlantilla = (from: string, payload: string) => ({ from, type: 'button
  * Se anota hasta que id de OutboundMessage habia al arrancar.
  */
 const base = new Map<string, number>();
-for (const t of [F1, F2, PACIENTE, PACIENTE2]) base.set(t, (await store().salientesDe(t)).at(-1)?.id ?? 0);
+for (const t of [F1, F2, F3, PACIENTE, PACIENTE2, PACIENTE3]) base.set(t, (await store().salientesDe(t)).at(-1)?.id ?? 0);
 
 /** Espera hasta que el telefono reciba un saliente NUEVO cuyo cuerpo cumpla `contiene`. */
 async function esperar(telefono: string, contiene: string, ms = 15_000): Promise<string | undefined> {
@@ -114,7 +118,7 @@ try {
     console.log(
       `  ⚠ CIERRE PREMATURO (premisa de la simulacion rota, no un fallo del producto): el delay de ` +
         `${ESPERA_CIERRE_MS} ms vencio antes de que F1/F2 contestaran (tardaron ${tRespondieron} ms). ` +
-        `Sube ESPERA_CIERRE_MS.`
+        `Sube SIM_ESPERA_CIERRE_MS.`
     );
   }
   verificar(Boolean(final), 'el paciente recibe el resultado (F3 no contesto: cerro el job con delay)');
@@ -150,6 +154,22 @@ try {
   const fila = demanda.items.find((i) => i.segmento.startsWith('Paracetamol'));
   verificar(Boolean(fila && fila.noTenias >= 1), 'F2 ve que le buscaron Paracetamol y no tenia');
   verificar(!JSON.stringify(demanda).includes(PACIENTE), 'la respuesta no contiene el telefono del paciente');
+
+  paso('Escenario 5: cierre ANTICIPADO (contestan todas las farmacias activas, el delay NO se espera)');
+  await webhook(texto(PACIENTE3, 'Losartan 50 mg'));
+  await esperar(PACIENTE3, 'Es correcto');
+  const sol3 = await store().ultimaDePaciente(PACIENTE3);
+  const t5 = Date.now();
+  await webhook(botonPropio(PACIENTE3, `confirmar:${sol3!.id}`));
+  await esperar(F3, 'Losartan');
+  await webhook(botonPlantilla(F1, 'No tengo'));
+  await webhook(botonPlantilla(F2, 'No tengo'));
+  await webhook(botonPlantilla(F3, 'No tengo'));
+  const cerro = await esperar(PACIENTE3, 'Ninguna farmacia cercana', ESPERA_CIERRE_MS);
+  const tardo = Date.now() - t5;
+  verificar(Boolean(cerro), 'el paciente recibe el cierre');
+  // Relativo al delay de ESTA simulacion y a ESTA maquina; no prueba nada del reloj de otra.
+  verificar(tardo < ESPERA_CIERRE_MS / 2, `cerro por contestar todas (${tardo} ms), no por el delay (${ESPERA_CIERRE_MS} ms)`);
 } finally {
   await detener();
   await app.close();

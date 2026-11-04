@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import { ErrorLecturaReceta, lectorDeRecetas, type RecipeExtraction } from '../ai/index.ts';
-import { config } from '../config.ts';
 import { distanciaCaminando } from '../maps/client.ts';
 import { store } from '../store/index.ts';
 import type { OpcionMedicamento, SegmentoMercado } from '../types.ts';
@@ -9,7 +8,7 @@ import { consultarFarmacia, descargarMedia, enviarBotones, enviarTexto } from '.
 import type { MensajeEntrante } from '../whatsapp/tipos.ts';
 import { etiqueta, nombreParaPaciente, resolverSegmentos } from './catalogo.ts';
 import { farmaciasConsultables } from './farmacias.ts';
-import { programarCierre } from './planificador.ts';
+import { esperaCierreMs, programarCierre } from './planificador.ts';
 
 /** Centro de Sangolqui. Se usa si el paciente no comparte ubicacion. */
 const UBICACION_POR_DEFECTO = { lat: -0.33, lng: -78.445 };
@@ -239,7 +238,7 @@ export async function pacienteConfirmo(solicitudId: string): Promise<void> {
   );
 
   // Cierre con lo que haya: job con delay (BullMQ), no setTimeout.
-  await programarCierre(s.id, config.cola.esperaCierreMs);
+  await programarCierre(s.id, esperaCierreMs());
   // Si ninguna consulta quedo registrada, no tiene sentido esperar.
   await revisarSiYaEstaLista(s.id);
 }

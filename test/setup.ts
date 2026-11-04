@@ -2,6 +2,7 @@
 process.env.WHATSAPP_DRY_RUN = 'true';
 process.env.OSRM_ACTIVO = 'false';
 process.env.ACTIVE_PHARMACY_PHONES = ''; // las pruebas no dependen del .env del desarrollador
+delete process.env.ESPERA_CIERRE_MS; // el .env del desarrollador no decide el delay de las pruebas
 process.env.RECIPE_PROVIDER = 'mock';
 process.env.MODEL_API_KEY = 'clave-de-prueba';
 process.env.META_API_BASE_URL = 'https://meta.invalido.test/v1';
