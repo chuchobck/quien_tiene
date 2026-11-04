@@ -61,7 +61,7 @@ More detail in [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 
 ### Built and tested (this is what the evidence below covers)
 
-Verified by `npm test` (38 tests, vitest) and `npm run simular` (end-to-end, no phones), run against **PostgreSQL 16 and Redis 7 installed locally with apt**:
+Verified by `npm test` (53 tests, vitest) and `npm run simular` (end-to-end, no phones), run against **PostgreSQL 16 and Redis 7 installed locally with apt**:
 
 - Webhook that validates, dedupes by WhatsApp `message.id` and enqueues; replies 200 first. Handles `text`, `image`, `location`, `interactive` and template quick-reply `button` messages.
 - BullMQ worker (separate process or embedded), retries with backoff, failed jobs kept as dead-letter, friendly message to the patient when retries run out (unit-tested; no live failure drill).
@@ -76,7 +76,7 @@ Verified by `npm test` (38 tests, vitest) and `npm run simular` (end-to-end, no 
 
 ### What these tests do NOT prove
 
-- **Meta Model API adapter: unverified.** The official docs were not reachable from the build environment and there was no API key. The adapter assumes an OpenAI-style Chat Completions API (see the `UNVERIFIED` banner in [`src/ai/meta.ts`](src/ai/meta.ts)). Its tests run against a simulated `fetch` and only check our retry/validation logic, not the real request/response format. The exact checklist to run with the key is in [`docs/MANANA.md`](docs/MANANA.md).
+- **Meta Model API adapter: partially unverified.** No API key yet, and the official docs were not reachable from the build environment. Taken as given by the author (not checked by me): base URL `https://api.meta.ai/v1` (`dev.meta.ai` is the portal, not the API), `Authorization: Bearer`, OpenAI-compatible `POST /chat/completions` and `POST /responses`. **Unverified:** the image format (two modes via `META_IMAGE_MODE`: `chat` = `image_url` data URL on `/chat/completions`, `responses` = `input_image` on `/responses`), the exact response shape, how reasoning blocks look (the adapter ignores them and validates only the final text), and `META_REASONING_EFFORT`. See the `UNVERIFIED` banner in [`src/ai/meta.ts`](src/ai/meta.ts). Its tests use a simulated `fetch` and only check our routing, retry, validation and reasoning-discard logic, not the real API. Checklist for the key: [`docs/MANANA.md`](docs/MANANA.md).
 - **No real prescription image has been read by any provider in this hackathon build.** The only provider exercised end to end is the mock.
 - The live WhatsApp send path (non-dry-run) was not re-tested after this refactor.
 - `docker-compose.yml` is **untested**: the build sandbox had the Docker CLI but no daemon. The `Dockerfile` is also untested.
@@ -107,7 +107,7 @@ npm run simular     # end-to-end with fake webhooks, mock AI, dry-run WhatsApp
 
 Other commands: `npm run dev` (server + embedded worker), `npm run worker` (separate worker, with `WORKER_EMBEBIDO=false` on the server), `npm test`, `npm run typecheck`, `npm run probar:ia -- "texto" | ruta/receta.jpg`.
 
-Config: see [`.env.example`](.env.example). `RECIPE_PROVIDER=mock|gemini|meta`.
+Config: see [`.env.example`](.env.example). `RECIPE_PROVIDER=mock|gemini|meta`. For Meta: `MODEL_API_KEY` (alias `META_API_KEY`), `META_API_BASE_URL`, `META_MODEL` (default `muse-spark-1.1`), `META_IMAGE_MODE=chat|responses`, optional `META_REASONING_EFFORT`.
 
 ## Transparency: what existed before the hackathon
 

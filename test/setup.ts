@@ -2,5 +2,5 @@
 process.env.WHATSAPP_DRY_RUN = 'true';
 process.env.OSRM_ACTIVO = 'false';
 process.env.RECIPE_PROVIDER = 'mock';
-process.env.META_API_KEY = 'clave-de-prueba';
-process.env.META_API_BASE_URL = 'https://meta.invalido.test';
+process.env.MODEL_API_KEY = 'clave-de-prueba';
+process.env.META_API_BASE_URL = 'https://meta.invalido.test/v1';
