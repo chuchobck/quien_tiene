@@ -1,3 +1,4 @@
+import { log } from '../util/log.ts';
 import { config } from '../config.ts';
 import type { LecturaMedicamento } from '../types.ts';
 import { PROMPT_LECTURA } from './prompts.ts';
@@ -44,7 +45,7 @@ async function generar(partes: ParteGemini[]): Promise<string> {
     }
 
     const espera = 1500 * intento;
-    console.error(`[gemini] intento ${intento} fallo (${res.status}), reintento en ${espera}ms`);
+    log.error(`[gemini] intento ${intento} fallo (${res.status}), reintento en ${espera}ms`);
     await new Promise((r) => setTimeout(r, espera));
   }
 

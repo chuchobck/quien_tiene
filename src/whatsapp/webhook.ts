@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { mascararTelefono } from '../util/log.ts';
 import { config } from '../config.ts';
 import { farmaciaPorTelefono } from '../core/catalogo.ts';
 import {
@@ -88,7 +89,7 @@ export function registrarWebhook(app: FastifyInstance): void {
 
 async function manejar(m: MensajeEntrante, app: FastifyInstance): Promise<void> {
   const esFarmacia = Boolean(farmaciaPorTelefono(m.from));
-  app.log.info({ de: m.from, tipo: m.type, esFarmacia }, 'Mensaje entrante');
+  app.log.info({ de: mascararTelefono(m.from), tipo: m.type, esFarmacia }, 'Mensaje entrante');
 
   // ── Boton de plantilla (quick reply pegado a un mensaje de plantilla) ──
   if (m.type === 'button' && m.button) {

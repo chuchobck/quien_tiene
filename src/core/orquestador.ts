@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { LecturaMedicamento, SegmentoMercado, Solicitud } from '../types.ts';
+import { log } from '../util/log.ts';
 import { store } from '../store/index.ts';
 import {
   etiqueta,
@@ -153,7 +154,7 @@ export async function pacienteConfirmo(solicitudId: string): Promise<void> {
 
         await consultarFarmacia(f.telefono, etiqueta(seg), d.texto, s.id);
       } catch (err) {
-        console.error(`[orquestador] fallo consultando a ${f.nombre}:`, err);
+        log.error(`[orquestador] fallo consultando a ${f.nombre}`, err);
       }
     })
   );

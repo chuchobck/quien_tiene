@@ -1,3 +1,5 @@
+import { log } from '../util/log.ts';
+
 export interface Distancia {
   texto: string;
   metros: number;
@@ -34,7 +36,7 @@ export async function distanciaCaminando(
     }
     throw new Error(`OSRM respondio codigo: ${data.code}`);
   } catch (err) {
-    console.error('[maps] OSRM fallo, uso distancia aproximada:', err);
+    log.warn('[maps] OSRM fallo, uso distancia aproximada', err);
     return aproximada(origen, destino);
   }
 }
