@@ -28,3 +28,7 @@ uploads/
 *.dump
 *.bak
 dumps/
+
+# Volcados de Redis
+dump.rdb
+*.rdb
