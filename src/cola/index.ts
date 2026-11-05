@@ -47,7 +47,8 @@ export async function encolarMensaje(m: MensajeEntrante): Promise<void> {
 }
 
 export async function programarCierreEnCola(solicitudId: string, esperaMs: number): Promise<void> {
-  await cierres().add('cerrar', { solicitudId }, { ...opcionesBase, delay: esperaMs, jobId: `cierre-${solicitudId}` });
+  // DEMO: setTimeout (reloj monotono). El reloj de WSL salta y BullMQ promovia el delay al instante.
+  setTimeout(() => { void cerrarSolicitud(solicitudId).catch((e) => log.error('[cola] cierre fallo', e)); }, esperaMs);
 }
 
 /** Conecta el planificador del orquestador con BullMQ. Lo llaman el servidor y el worker. */
